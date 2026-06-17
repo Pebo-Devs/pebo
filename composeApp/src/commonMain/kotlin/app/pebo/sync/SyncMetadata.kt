@@ -1,5 +1,8 @@
 package app.pebo.sync
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class SyncRecord(
     val noteId: String,
     val remoteId: String,
