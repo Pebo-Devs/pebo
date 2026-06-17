@@ -15,13 +15,13 @@ enum class StorageProvider(
     ),
     OneDrive(
         "OneDrive (Microsoft)",
-        "OAuth PKCE + sync engine foundation is in place; needs an Entra public client id.",
+        "OAuth PKCE + secure token storage are ready; set PEBO_ONEDRIVE_CLIENT_ID.",
         "Needs setup",
         false,
     ),
     GoogleDrive(
         "Google Drive",
-        "OAuth PKCE + sync engine foundation is in place; needs a Google desktop client id.",
+        "OAuth PKCE + secure token storage are ready; set PEBO_GOOGLE_CLIENT_ID.",
         "Needs setup",
         false,
     ),
