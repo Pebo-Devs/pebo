@@ -164,7 +164,7 @@ fun InfoPill(text: String, modifier: Modifier = Modifier) {
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.58f)),
-        modifier = modifier,
+        modifier = modifier.height(34.dp),
     ) {
         Text(
             text,
@@ -214,7 +214,7 @@ fun PillAction(
     icon: ImageVector? = null,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.height(34.dp),
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f)),

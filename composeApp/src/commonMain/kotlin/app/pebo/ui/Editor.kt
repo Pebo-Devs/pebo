@@ -2,11 +2,10 @@ package app.pebo.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -51,7 +50,6 @@ import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import kotlinx.coroutines.flow.drop
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun Editor(
     vm: NotesViewModel,
@@ -107,10 +105,12 @@ fun Editor(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                 )
-                FlowRow(
+                Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(top = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(top = 5.dp)
+                        .horizontalScroll(rememberScrollState()),
                 ) {
                     InfoPill(if (vm.saving) "Saving" else "Saved")
                     InfoPill("Markdown")
