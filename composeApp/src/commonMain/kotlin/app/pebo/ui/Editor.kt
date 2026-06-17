@@ -1,6 +1,7 @@
 package app.pebo.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +33,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
@@ -49,12 +52,7 @@ fun Editor(
             .background(MaterialTheme.colorScheme.background),
     ) {
         if (note == null) {
-            EmptyStateCard(
-                title = "Your writing space",
-                message = "Select a note from the list or create a new one. Markdown, tags, and autosave are ready.",
-                actionText = "New note",
-                onAction = { vm.createNote() },
-            )
+            WelcomeWorkspace(onCreate = { vm.createNote() })
             return@Column
         }
 
@@ -69,6 +67,7 @@ fun Editor(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             }
+
             Text(
                 if (vm.saving) "Saving…" else "Saved",
                 style = MaterialTheme.typography.labelSmall,
@@ -132,32 +131,99 @@ fun Editor(
             tonalElevation = 1.dp,
         ) {
             Box(Modifier.fillMaxSize()) {
-            if (note.body.isEmpty() && !note.trashed) {
-                Column(Modifier.padding(horizontal = 28.dp, vertical = 30.dp)) {
-                    Text(
-                        "Untitled",
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "Start writing. The first line becomes the title. Use #tags anywhere.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                    )
+                if (note.body.isEmpty() && !note.trashed) {
+                    Column(Modifier.padding(horizontal = 28.dp, vertical = 30.dp)) {
+                        Text(
+                            "Untitled",
+                            style = MaterialTheme.typography.displaySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Start writing. The first line becomes the title. Use #tags anywhere.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                        )
+                    }
+                }
+                BasicRichTextEditor(
+                    state = state,
+                    readOnly = note.trashed,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 28.dp, vertical = 26.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WelcomeWorkspace(onCreate: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(34.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(36.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            tonalElevation = 4.dp,
+            shadowElevation = 16.dp,
+            modifier = Modifier.fillMaxWidth(0.82f),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 44.dp, vertical = 42.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                InfoPill("Local-first | Markdown | Cloud-ready")
+                Text(
+                    "Pebo",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    "A focused notes workspace for ideas that belong to you.",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    WelcomeFeature("Write", "Fast Markdown notes with autosave.", Modifier.weight(1f))
+                    WelcomeFeature("Organize", "Tags appear naturally as you type.", Modifier.weight(1f))
+                    WelcomeFeature("Own", "Files stay portable in your storage.", Modifier.weight(1f))
+                }
+                Button(onClick = onCreate) {
+                    Text("Create your first note")
                 }
             }
-            BasicRichTextEditor(
-                state = state,
-                readOnly = note.trashed,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 28.dp, vertical = 26.dp),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            )
         }
+    }
+}
+
+@Composable
+private fun WelcomeFeature(title: String, body: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
+        tonalElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+            Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
