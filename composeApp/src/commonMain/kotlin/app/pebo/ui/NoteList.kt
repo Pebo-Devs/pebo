@@ -2,7 +2,6 @@ package app.pebo.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,12 +31,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.pebo.core.DateLabel
-import app.pebo.core.Note
 import app.pebo.core.NoteFilter
 
 @Composable
@@ -47,6 +44,7 @@ fun NoteList(
     onMenu: (() -> Unit)? = null,
 ) {
     val notes = vm.visibleNotes
+    val rows = vm.visibleNoteRows
     val isTrash = vm.filter == NoteFilter.Trash
     Column(
         modifier = modifier
@@ -112,11 +110,11 @@ fun NoteList(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
             ) {
-                items(notes, key = { it.id }) { note ->
+                items(rows, key = { it.note.id }) { row ->
                     NoteRow(
-                        note = note,
-                        selected = note.id == vm.selectedId,
-                        onClick = { vm.select(note.id) },
+                        row = row,
+                        selected = row.note.id == vm.selectedId,
+                        onClick = { vm.select(row.note.id) },
                     )
                 }
             }
@@ -181,7 +179,8 @@ private fun noteCountLabel(count: Int, trash: Boolean): String =
     }
 
 @Composable
-private fun NoteRow(note: Note, selected: Boolean, onClick: () -> Unit) {
+private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
+    val note = row.note
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(17.dp),
@@ -199,6 +198,16 @@ private fun NoteRow(note: Note, selected: Boolean, onClick: () -> Unit) {
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (row.depth > 0) {
+                Spacer(Modifier.width((row.depth * 18).dp))
+                Box(
+                    Modifier
+                        .width(10.dp)
+                        .height(24.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.74f), RoundedCornerShape(50)),
+                )
+                Spacer(Modifier.width(10.dp))
+            }
             if (selected) {
                 Box(
                     Modifier
@@ -210,6 +219,14 @@ private fun NoteRow(note: Note, selected: Boolean, onClick: () -> Unit) {
             }
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (row.hasChildren) {
+                        Text(
+                            "▾",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 6.dp),
+                        )
+                    }
                     if (note.pinned) {
                         Icon(
                             Icons.Filled.PushPin,

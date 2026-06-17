@@ -8,6 +8,7 @@ object NoteFile {
         append("id: ").append(note.id).append('\n')
         append("created: ").append(note.created).append('\n')
         append("modified: ").append(note.modified).append('\n')
+        if (!note.parentId.isNullOrBlank()) append("parent: ").append(note.parentId).append('\n')
         if (note.pinned) append("pinned: true\n")
         append("---\n")
         append(note.body)
@@ -29,6 +30,7 @@ object NoteFile {
                     body = body,
                     created = fm["created"]?.takeIf { it.isNotBlank() } ?: nowIso(),
                     modified = fm["modified"]?.takeIf { it.isNotBlank() } ?: nowIso(),
+                    parentId = fm["parent"]?.takeIf { it.isNotBlank() },
                     pinned = fm["pinned"]?.equals("true", ignoreCase = true) == true,
                     trashed = trashed,
                 )

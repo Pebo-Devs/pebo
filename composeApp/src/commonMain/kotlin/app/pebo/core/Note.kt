@@ -9,6 +9,7 @@ data class Note(
     val body: String,
     val created: String,
     val modified: String,
+    val parentId: String? = null,
     val pinned: Boolean = false,
     val trashed: Boolean = false,
 ) {
@@ -17,9 +18,9 @@ data class Note(
     val tags: List<String> get() = TagParser.extract(body)
 
     companion object {
-        fun new(body: String = ""): Note {
+        fun new(body: String = "", parentId: String? = null): Note {
             val now = nowIso()
-            return Note(id = newId(), body = body, created = now, modified = now)
+            return Note(id = newId(), body = body, created = now, modified = now, parentId = parentId)
         }
     }
 }

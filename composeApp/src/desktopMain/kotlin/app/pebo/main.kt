@@ -1,5 +1,6 @@
 package app.pebo
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -8,10 +9,17 @@ import androidx.compose.ui.window.rememberWindowState
 import app.pebo.core.Note
 import app.pebo.data.LocalNoteStore
 import app.pebo.ui.NotesViewModel
+import com.sun.jna.Native
+import com.sun.jna.Pointer
+import com.sun.jna.platform.win32.WinDef
+import com.sun.jna.platform.win32.WinNT
+import com.sun.jna.ptr.IntByReference
+import com.sun.jna.win32.StdCallLibrary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import java.awt.Window as AwtWindow
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -30,7 +38,40 @@ fun main() = application {
         title = "Pebo",
         state = windowState,
     ) {
+        LaunchedEffect(Unit) {
+            applyWindowsTitleBar(window)
+        }
         App(vm, baseDir.toString())
+    }
+}
+
+private fun applyWindowsTitleBar(window: AwtWindow) {
+    if (!System.getProperty("os.name").contains("Windows", ignoreCase = true)) return
+    try {
+        val hwnd = WinDef.HWND(Native.getWindowPointer(window))
+        val enabled = IntByReference(1)
+        DwmApi.INSTANCE.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, enabled.pointer, Int.SIZE_BYTES)
+        DwmApi.INSTANCE.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD, enabled.pointer, Int.SIZE_BYTES)
+
+        val captionColor = IntByReference(0x00120D0B)
+        val textColor = IntByReference(0x00F7EDE8)
+        DwmApi.INSTANCE.DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, captionColor.pointer, Int.SIZE_BYTES)
+        DwmApi.INSTANCE.DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, textColor.pointer, Int.SIZE_BYTES)
+    } catch (error: UnsatisfiedLinkError) {
+        System.err.println("Unable to apply dark Windows title bar: ${error.message}")
+    }
+}
+
+private const val DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19
+private const val DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+private const val DWMWA_CAPTION_COLOR = 35
+private const val DWMWA_TEXT_COLOR = 36
+
+private interface DwmApi : StdCallLibrary {
+    fun DwmSetWindowAttribute(hwnd: WinDef.HWND, attribute: Int, value: Pointer, valueSize: Int): WinNT.HRESULT
+
+    companion object {
+        val INSTANCE: DwmApi = Native.load("dwmapi", DwmApi::class.java)
     }
 }
 

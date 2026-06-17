@@ -32,6 +32,18 @@ class LocalNoteStoreTest {
     }
 
     @Test
+    fun savesAndReloadsParentRelationship() = runBlocking {
+        val store = newStore()
+        val parent = Note.new("# Project")
+        val child = Note.new("# Task", parentId = parent.id)
+        store.save(parent)
+        store.save(child)
+
+        val snap = store.load()
+        assertEquals(parent.id, snap.active.single { it.id == child.id }.parentId)
+    }
+
+    @Test
     fun trashRestoreAndPurge() = runBlocking {
         val store = newStore()
         val note = Note.new("Just a note")

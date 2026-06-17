@@ -14,6 +14,7 @@ class NoteFileTest {
             body = "# Hello\nworld with #tag",
             created = "2026-06-17T10:00:00Z",
             modified = "2026-06-17T11:00:00Z",
+            parentId = "parent-note",
             pinned = true,
         )
         val text = NoteFile.serialize(note)
@@ -23,6 +24,7 @@ class NoteFileTest {
         assertEquals("# Hello\nworld with #tag", parsed.body)
         assertEquals("2026-06-17T10:00:00Z", parsed.created)
         assertEquals("2026-06-17T11:00:00Z", parsed.modified)
+        assertEquals("parent-note", parsed.parentId)
         assertTrue(parsed.pinned)
         assertEquals("Hello", parsed.title)
     }
