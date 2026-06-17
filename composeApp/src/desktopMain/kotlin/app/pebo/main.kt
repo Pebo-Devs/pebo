@@ -19,7 +19,7 @@ fun main() = application {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val vm = NotesViewModel(store, scope)
 
-    val windowState = rememberWindowState(size = DpSize(1100.dp, 720.dp))
+    val windowState = rememberWindowState(size = DpSize(1220.dp, 760.dp))
     Window(
         onCloseRequest = ::exitApplication,
         title = "Pebo",
@@ -28,4 +28,3 @@ fun main() = application {
         App(vm, baseDir.toString())
     }
 }
-

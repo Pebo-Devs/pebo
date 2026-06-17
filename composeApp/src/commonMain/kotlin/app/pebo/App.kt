@@ -34,9 +34,9 @@ fun App(vm: NotesViewModel, dataDir: String) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 if (maxWidth >= 840.dp) {
                     Row(Modifier.fillMaxSize()) {
-                        Sidebar(vm, Modifier.width(230.dp))
+                        Sidebar(vm, Modifier.width(260.dp))
                         VPaneDivider()
-                        NoteList(vm, Modifier.width(330.dp))
+                        NoteList(vm, Modifier.width(390.dp))
                         VPaneDivider()
                         Editor(vm, Modifier.weight(1f))
                     }
@@ -67,4 +67,3 @@ private fun CompactLayout(vm: NotesViewModel) {
         }
     }
 }
-

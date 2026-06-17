@@ -2,11 +2,13 @@ package app.pebo.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -16,10 +18,13 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.automirrored.filled.LabelOff
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,16 +35,50 @@ fun Sidebar(vm: NotesViewModel, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 12.dp, vertical = 14.dp),
     ) {
-        SidebarItem(
-            label = "New Note",
-            icon = Icons.Filled.Add,
-            selected = false,
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                modifier = Modifier.size(38.dp),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.primary,
+                tonalElevation = 3.dp,
+            ) {
+                Text(
+                    "P",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(start = 12.dp, top = 5.dp),
+                )
+            }
+            Column(Modifier.padding(start = 12.dp)) {
+                Text("Pebo", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Markdown notes",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Button(
             onClick = { vm.createNote() },
-        )
-        Spacer(Modifier.height(8.dp))
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 10.dp),
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text("New note", modifier = Modifier.padding(start = 8.dp))
+        }
+
+        SectionLabel("LIBRARY", modifier = Modifier.padding(start = 12.dp, bottom = 4.dp, top = 4.dp))
 
         SidebarItem(
             label = "All Notes",
@@ -65,14 +104,8 @@ fun Sidebar(vm: NotesViewModel, modifier: Modifier = Modifier) {
 
         val tags = vm.tags
         if (tags.isNotEmpty()) {
-            Spacer(Modifier.height(14.dp))
-            Text(
-                "TAGS",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 10.dp, bottom = 4.dp),
-            )
+            Spacer(Modifier.height(18.dp))
+            SectionLabel("TAGS", modifier = Modifier.padding(start = 12.dp, bottom = 4.dp))
             LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
                 items(tags, key = { it.name }) { entry ->
                     val current = vm.filter
