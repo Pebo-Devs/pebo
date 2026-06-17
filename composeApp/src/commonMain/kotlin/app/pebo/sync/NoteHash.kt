@@ -9,6 +9,7 @@ import app.pebo.core.Note
 object NoteHash {
     fun of(note: Note): String = fnv1a64(buildString {
         append(note.body)
+        append("\nparent=").append(note.parentId.orEmpty())
         append("\npinned=").append(note.pinned)
     })
 

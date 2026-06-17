@@ -20,19 +20,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.RestoreFromTrash
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +67,25 @@ fun Editor(
         if (note == null) {
             WelcomeWorkspace(onCreate = { vm.createNote() })
             return@Column
+        }
+
+        val state = rememberRichTextState()
+        var showTagDialog by remember(note.id) { mutableStateOf(false) }
+        LaunchedEffect(note.id) {
+            state.setMarkdown(note.body)
+            snapshotFlow { state.annotatedString }
+                .drop(1)
+                .collect { vm.updateBody(note.id, state.toMarkdown()) }
+        }
+
+        if (showTagDialog) {
+            AddTagDialog(
+                onDismiss = { showTagDialog = false },
+                onAdd = { rawTag ->
+                    vm.addTag(note.id, rawTag)?.let { updatedBody -> state.setMarkdown(updatedBody) }
+                    showTagDialog = false
+                },
+            )
         }
 
         Row(
@@ -88,6 +115,10 @@ fun Editor(
                     InfoPill(if (vm.saving) "Saving" else "Saved")
                     InfoPill("Markdown")
                     note.tags.take(3).forEach { TagChip(it) }
+                    if (!note.trashed) {
+                        PillAction("Add tag", onClick = { showTagDialog = true }, icon = Icons.Filled.Tag)
+                        PillAction("Child note", onClick = { vm.createChildNote(note.id) }, icon = Icons.Filled.Add)
+                    }
                 }
             }
             if (note.trashed) {
@@ -127,14 +158,6 @@ fun Editor(
                 )
                 TextButton(onClick = { vm.restore(note.id) }) { Text("Restore") }
             }
-        }
-
-        val state = rememberRichTextState()
-        LaunchedEffect(note.id) {
-            state.setMarkdown(note.body)
-            snapshotFlow { state.annotatedString }
-                .drop(1)
-                .collect { vm.updateBody(note.id, state.toMarkdown()) }
         }
 
         Box(
@@ -177,6 +200,42 @@ fun Editor(
             }
         }
     }
+}
+
+@Composable
+private fun AddTagDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
+    var tag by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add tag") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Tags are written into the note as #tag, including nested tags like #project/pebo.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = tag,
+                    onValueChange = { tag = it },
+                    singleLine = true,
+                    label = { Text("Tag name") },
+                    prefix = { Text("#") },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = tag.isNotBlank(),
+                onClick = { onAdd(tag) },
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable

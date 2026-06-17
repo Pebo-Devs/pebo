@@ -13,6 +13,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class TagEntry(val name: String, val count: Int)
+data class NoteTreeRow(
+    val note: Note,
+    val depth: Int,
+    val hasChildren: Boolean,
+)
 
 /**
  * In-memory, Compose-observable note state backed by a [NoteStore]. Loads everything once, mutates
@@ -86,6 +91,9 @@ class NotesViewModel(
             }
         }
 
+    val visibleNoteRows: List<NoteTreeRow>
+        get() = buildTreeRows(visibleNotes)
+
     val selectedNote: Note? get() = active.firstOrNull { it.id == selectedId } ?: trashed.firstOrNull { it.id == selectedId }
 
     fun select(id: String?) {
@@ -102,13 +110,34 @@ class NotesViewModel(
         if (visibleNotes.none { it.id == selectedId }) selectedId = null
     }
 
-    fun createNote() {
-        val note = Note.new(body = "")
+    fun createNote(parentId: String? = null) {
+        val note = Note.new(body = "", parentId = parentId)
         query = ""
         filter = NoteFilter.All
         active = listOf(note) + active
         selectedId = note.id
         scope.launch { store.save(note) }
+    }
+
+    fun createChildNote(parentId: String) {
+        if (active.none { it.id == parentId }) return
+        createNote(parentId = parentId)
+    }
+
+    fun addTag(id: String, rawTag: String): String? {
+        val tag = normalizeTag(rawTag) ?: return null
+        val note = active.firstOrNull { it.id == id && !it.trashed } ?: return null
+        if (note.tags.any { it.equals(tag, ignoreCase = true) }) return note.body
+        val trimmed = note.body.trimEnd()
+        val body = if (trimmed.isBlank()) {
+            "# Untitled\n\n#$tag"
+        } else {
+            "$trimmed\n\n#$tag"
+        }
+        val updated = note.copy(body = body, modified = nowIso())
+        active = active.map { if (it.id == id) updated else it }
+        scope.launch { store.save(updated) }
+        return body
     }
 
     private var saveJob: Job? = null
@@ -171,5 +200,43 @@ class NotesViewModel(
 
     fun selectStorage(provider: StorageProvider) {
         if (provider.available) storageProvider = provider
+    }
+
+    private fun buildTreeRows(notes: List<Note>): List<NoteTreeRow> {
+        val ids = notes.mapTo(HashSet()) { it.id }
+        val childrenByParent = notes
+            .filter { it.parentId in ids }
+            .groupBy { it.parentId!! }
+        val roots = notes.filter { it.parentId !in ids }
+        val rows = ArrayList<NoteTreeRow>(notes.size)
+        val visited = HashSet<String>()
+
+        fun visit(note: Note, depth: Int) {
+            if (!visited.add(note.id)) return
+            val children = childrenByParent[note.id].orEmpty()
+            rows.add(NoteTreeRow(note = note, depth = depth, hasChildren = children.isNotEmpty()))
+            children.forEach { visit(it, depth + 1) }
+        }
+
+        roots.forEach { visit(it, 0) }
+        notes.filter { it.id !in visited }.forEach { visit(it, 0) }
+        return rows
+    }
+
+    private fun normalizeTag(rawTag: String): String? {
+        val tag = rawTag
+            .trim()
+            .trimStart('#')
+            .replace('\\', '/')
+            .split('/')
+            .joinToString("/") { segment ->
+                segment
+                    .trim()
+                    .lowercase()
+                    .replace(Regex("\\s+"), "-")
+                    .filter { it.isLetterOrDigit() || it == '-' || it == '_' }
+            }
+            .trim('/')
+        return tag.takeIf { it.isNotBlank() }
     }
 }
