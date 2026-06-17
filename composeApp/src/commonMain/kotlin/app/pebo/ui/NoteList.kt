@@ -93,14 +93,14 @@ fun NoteList(
 
         if (notes.isEmpty()) {
             EmptyStateCard(
-                title = if (isTrash) "Trash is empty" else "A quiet place to think",
+                title = if (isTrash) "Trash is empty" else "Start your library",
                 message = if (isTrash) {
                     "Deleted notes will appear here before they are permanently removed."
                 } else {
-                    "Create your first note and start with a title, a thought, or a #tag."
+                    "Capture ideas, meeting notes, lists, and research in plain Markdown."
                 },
                 actionText = if (isTrash) null else "Create note",
-                onAction = if (isTrash) null else { { vm.createNote() } },
+                onAction = if (isTrash) null else ({ vm.createNote() }),
                 modifier = Modifier.weight(1f),
             )
         } else {
