@@ -1,15 +1,20 @@
 package app.pebo.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -20,7 +25,6 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +43,7 @@ import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import kotlinx.coroutines.flow.drop
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun Editor(
     vm: NotesViewModel,
@@ -59,7 +64,7 @@ fun Editor(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 12.dp),
+                .padding(horizontal = 24.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (onBack != null) {
@@ -68,13 +73,23 @@ fun Editor(
                 }
             }
 
-            Text(
-                if (vm.saving) "Saving…" else "Saved",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 6.dp),
-            )
-            Spacer(Modifier.weight(1f))
+            Column(Modifier.weight(1f).padding(start = if (onBack == null) 0.dp else 6.dp)) {
+                Text(
+                    note.title.ifBlank { "Untitled" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(top = 5.dp),
+                ) {
+                    InfoPill(if (vm.saving) "Saving" else "Saved")
+                    InfoPill("Markdown")
+                    note.tags.take(3).forEach { TagChip(it) }
+                }
+            }
             if (note.trashed) {
                 IconButton(onClick = { vm.restore(note.id) }) {
                     Icon(Icons.Filled.RestoreFromTrash, contentDescription = "Restore")
@@ -122,27 +137,30 @@ fun Editor(
                 .collect { vm.updateBody(note.id, state.toMarkdown()) }
         }
 
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 22.dp, end = 28.dp, bottom = 22.dp),
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-            tonalElevation = 1.dp,
+                .padding(horizontal = 34.dp, vertical = 16.dp),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Box(Modifier.fillMaxSize()) {
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.84f)
+                    .widthIn(max = 820.dp),
+            ) {
                 if (note.body.isEmpty() && !note.trashed) {
-                    Column(Modifier.padding(horizontal = 28.dp, vertical = 30.dp)) {
+                    Column(Modifier.padding(top = 34.dp)) {
                         Text(
                             "Untitled",
                             style = MaterialTheme.typography.displaySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            "Start writing. The first line becomes the title. Use #tags anywhere.",
+                            "Start writing. Use #tags anywhere.",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
                         )
                     }
                 }
@@ -152,7 +170,7 @@ fun Editor(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 28.dp, vertical = 26.dp),
+                        .padding(top = 30.dp, bottom = 48.dp),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 )
@@ -166,30 +184,29 @@ private fun WelcomeWorkspace(onCreate: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(34.dp),
+            .padding(36.dp),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
-            shape = RoundedCornerShape(36.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-            tonalElevation = 4.dp,
-            shadowElevation = 16.dp,
-            modifier = Modifier.fillMaxWidth(0.82f),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.56f)),
+            modifier = Modifier.fillMaxWidth(0.76f),
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 44.dp, vertical = 42.dp),
+                modifier = Modifier.padding(horizontal = 38.dp, vertical = 38.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                InfoPill("Local-first | Markdown | Cloud-ready")
+                AccentBar(width = 48.dp)
                 Text(
-                    "Pebo",
+                    "No note selected",
                     style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    "A focused notes workspace for ideas that belong to you.",
+                    "Choose a note from the list or start a clean page.",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -198,13 +215,11 @@ private fun WelcomeWorkspace(onCreate: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    WelcomeFeature("Write", "Fast Markdown notes with autosave.", Modifier.weight(1f))
-                    WelcomeFeature("Organize", "Tags appear naturally as you type.", Modifier.weight(1f))
-                    WelcomeFeature("Own", "Files stay portable in your storage.", Modifier.weight(1f))
+                    WelcomeFeature("Write", "Inline Markdown with autosave.", Modifier.weight(1f))
+                    WelcomeFeature("Tag", "Organize with natural #tags.", Modifier.weight(1f))
+                    WelcomeFeature("Own", "Portable local .md files.", Modifier.weight(1f))
                 }
-                Button(onClick = onCreate) {
-                    Text("Create your first note")
-                }
+                PrimaryAction(label = "Create note", onClick = onCreate)
             }
         }
     }
@@ -214,12 +229,12 @@ private fun WelcomeWorkspace(onCreate: () -> Unit) {
 private fun WelcomeFeature(title: String, body: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
-        tonalElevation = 1.dp,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.background.copy(alpha = 0.74f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.52f)),
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)

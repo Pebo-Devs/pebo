@@ -1,5 +1,6 @@
 package app.pebo.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,9 +51,9 @@ fun NoteList(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.42f)),
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
     ) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onMenu != null) {
                     IconButton(onClick = onMenu) {
@@ -60,7 +61,11 @@ fun NoteList(
                     }
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(filterTitle(vm.filter), style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        filterTitle(vm.filter),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                     Text(
                         noteCountLabel(notes.size, isTrash),
                         style = MaterialTheme.typography.labelMedium,
@@ -69,10 +74,9 @@ fun NoteList(
                 }
                 Surface(
                     onClick = { vm.createNote() },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.primary,
-                    tonalElevation = 2.dp,
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -84,7 +88,7 @@ fun NoteList(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(18.dp))
             SearchField(
                 value = vm.query,
                 onValueChange = vm::updateQuery,
@@ -106,7 +110,7 @@ fun NoteList(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
             ) {
                 items(notes, key = { it.id }) { note ->
                     NoteRow(
@@ -123,13 +127,13 @@ fun NoteList(
 @Composable
 private fun SearchField(value: String, onValueChange: (String) -> Unit) {
     Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
-        tonalElevation = 1.dp,
+        shape = RoundedCornerShape(15.dp),
+        color = MaterialTheme.colorScheme.background.copy(alpha = 0.78f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -162,7 +166,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
 
 private fun filterTitle(filter: NoteFilter): String =
     when (filter) {
-        NoteFilter.All -> "All Notes"
+        NoteFilter.All -> "All notes"
         NoteFilter.Untagged -> "Untagged"
         NoteFilter.Trash -> "Trash"
         is NoteFilter.Tag -> "#${filter.name}"
@@ -178,55 +182,74 @@ private fun noteCountLabel(count: Int, trash: Boolean): String =
 
 @Composable
 private fun NoteRow(note: Note, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent
-    Column(
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(17.dp),
+        color = if (selected) MaterialTheme.colorScheme.background.copy(alpha = 0.96f) else Color.Transparent,
+        border = if (selected) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.74f))
+        } else {
+            null
+        },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 2.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
-            .background(bg)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 0.dp, vertical = 4.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (note.pinned) {
-                Icon(
-                    Icons.Filled.PushPin,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(14.dp),
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (selected) {
+                Box(
+                    Modifier
+                        .width(3.dp)
+                        .height(46.dp)
+                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)),
                 )
-                Spacer(Modifier.width(5.dp))
+                Spacer(Modifier.width(12.dp))
             }
-            Text(
-                note.title.ifBlank { "Untitled" },
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                DateLabel.short(note.modified),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        val snippet = note.snippet
-        if (snippet.isNotEmpty()) {
-            Spacer(Modifier.height(2.dp))
-            Text(
-                snippet,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (note.tags.isNotEmpty()) {
-            Spacer(Modifier.height(5.dp))
-            Row(horizontalArrangement = chipSpacing) {
-                note.tags.take(4).forEach { TagChip(it) }
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (note.pinned) {
+                        Icon(
+                            Icons.Filled.PushPin,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Spacer(Modifier.width(5.dp))
+                    }
+                    Text(
+                        note.title.ifBlank { "Untitled" },
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        DateLabel.short(note.modified),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                    )
+                }
+                val snippet = note.snippet
+                if (snippet.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        snippet,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (note.tags.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = chipSpacing) {
+                        note.tags.take(4).forEach { TagChip(it) }
+                    }
+                }
             }
         }
     }

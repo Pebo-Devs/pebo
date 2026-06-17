@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -33,10 +34,16 @@ fun App(vm: NotesViewModel, dataDir: String) {
             }
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 if (maxWidth >= 840.dp) {
+                    val visibleNotes = vm.visibleNotes
+                    LaunchedEffect(visibleNotes.map { it.id }, vm.filter, vm.query) {
+                        if (vm.selectedNote == null && visibleNotes.isNotEmpty()) {
+                            vm.select(visibleNotes.first().id)
+                        }
+                    }
                     Row(Modifier.fillMaxSize()) {
-                        Sidebar(vm, Modifier.width(260.dp))
+                        Sidebar(vm, Modifier.width(252.dp))
                         VPaneDivider()
-                        NoteList(vm, Modifier.width(390.dp))
+                        NoteList(vm, Modifier.width(368.dp))
                         VPaneDivider()
                         Editor(vm, Modifier.weight(1f))
                     }
