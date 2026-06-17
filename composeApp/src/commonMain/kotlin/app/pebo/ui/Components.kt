@@ -1,6 +1,8 @@
 package app.pebo.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,9 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,7 +30,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun VPaneDivider() {
@@ -38,7 +40,7 @@ fun VPaneDivider() {
         Modifier
             .fillMaxHeight()
             .width(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.70f)),
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.52f)),
     )
 }
 
@@ -51,20 +53,20 @@ fun SidebarItem(
     count: Int? = null,
     indentLevel: Int = 0,
 ) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent
-    val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f)
+    val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent
+    val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .padding(vertical = 1.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(start = (12 + indentLevel * 14).dp, end = 12.dp)
-            .height(40.dp),
+            .padding(start = (10 + indentLevel * 14).dp, end = 10.dp)
+            .height(36.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(19.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
         Text(
             label,
@@ -76,11 +78,7 @@ fun SidebarItem(
             overflow = TextOverflow.Ellipsis,
         )
         if (count != null && count > 0) {
-            Text(
-                count.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            CountPill(count)
         }
     }
 }
@@ -90,13 +88,13 @@ fun TagChip(tag: String) {
     Box(
         Modifier
             .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.09f))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(
             "#$tag",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.secondary,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -107,7 +105,8 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
         text,
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+        letterSpacing = 1.0.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.64f),
         modifier = modifier,
     )
 }
@@ -122,40 +121,21 @@ fun EmptyStateCard(
 ) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Surface(
-            shape = RoundedCornerShape(30.dp),
+            shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-            tonalElevation = 3.dp,
-            shadowElevation = 8.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.52f)),
             modifier = Modifier
-                .fillMaxWidth(0.78f)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
-                    shape = RoundedCornerShape(30.dp),
-                )
-                .padding(20.dp),
+                .fillMaxWidth(0.78f),
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 28.dp, vertical = 30.dp),
+                modifier = Modifier.padding(horizontal = 30.dp, vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                    modifier = Modifier.size(54.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            "✦",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
+                AccentBar(width = 42.dp)
                 Text(
                     title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
@@ -168,10 +148,8 @@ fun EmptyStateCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (actionText != null && onAction != null) {
-                    Spacer(Modifier.height(6.dp))
-                    Button(onClick = onAction) {
-                        Text(actionText)
-                    }
+                    Spacer(Modifier.height(2.dp))
+                    PrimaryAction(label = actionText, onClick = onAction)
                 }
             }
         }
@@ -184,15 +162,72 @@ val chipSpacing = Arrangement.spacedBy(4.dp)
 fun InfoPill(text: String, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.64f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.58f)),
         modifier = modifier,
     ) {
         Text(
             text,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
             maxLines = 1,
+        )
+    }
+}
+
+@Composable
+fun PrimaryAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.primary)
+            .clickable(onClick = onClick)
+            .padding(horizontal = if (icon == null) 18.dp else 14.dp, vertical = 11.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onPrimary,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+fun AccentBar(width: Dp, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .width(width)
+            .height(3.dp)
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.primary),
+    )
+}
+
+@Composable
+private fun CountPill(count: Int) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+    ) {
+        Text(
+            count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
         )
     }
 }
