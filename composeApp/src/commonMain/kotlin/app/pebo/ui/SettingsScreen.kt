@@ -89,7 +89,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
             Text(
-                "Pebo v0.1 · markdown notes, your storage",
+                "Pebo v0.2-dev · cloud sync foundation in progress · markdown notes, your storage",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -126,12 +126,10 @@ private fun StorageRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (!provider.available) {
-            Text(
-                "Coming soon",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            provider.statusLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
