@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,6 +22,7 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,20 +49,19 @@ fun Editor(
             .background(MaterialTheme.colorScheme.background),
     ) {
         if (note == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    "Select a note or create a new one",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            EmptyStateCard(
+                title = "Your writing space",
+                message = "Select a note from the list or create a new one. Markdown, tags, and autosave are ready.",
+                actionText = "New note",
+                onAction = { vm.createNote() },
+            )
             return@Column
         }
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (onBack != null) {
@@ -99,8 +101,8 @@ fun Editor(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f))
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -121,14 +123,29 @@ fun Editor(
                 .collect { vm.updateBody(note.id, state.toMarkdown()) }
         }
 
-        Box(Modifier.fillMaxSize()) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 22.dp, end = 28.dp, bottom = 22.dp),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+            tonalElevation = 1.dp,
+        ) {
+            Box(Modifier.fillMaxSize()) {
             if (note.body.isEmpty() && !note.trashed) {
-                Text(
-                    "Start writing… the first line becomes the title.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
-                )
+                Column(Modifier.padding(horizontal = 28.dp, vertical = 30.dp)) {
+                    Text(
+                        "Untitled",
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Start writing. The first line becomes the title. Use #tags anywhere.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                    )
+                }
             }
             BasicRichTextEditor(
                 state = state,
@@ -136,10 +153,11 @@ fun Editor(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 28.dp, vertical = 26.dp),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             )
+        }
         }
     }
 }
