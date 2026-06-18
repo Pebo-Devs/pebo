@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -235,25 +236,12 @@ private fun NoteRow(
     val bg by animateColorAsState(targetBg, label = "rowBg")
     val borderAlpha by animateFloatAsState(if (selected) 0.8f else 0f, label = "rowBorder")
     val elevation by animateDpAsState(if (selected) 10.dp else 0.dp, label = "rowElev")
-    val railColor = scheme.onSurfaceVariant.copy(alpha = if (selected || hovered) 0.68f else 0.5f)
+    val railColor = scheme.primary.copy(alpha = if (selected || hovered) 0.95f else 0.55f)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp)
-            .shadow(elevation, RoundedCornerShape(16.dp), clip = false)
-            .clip(RoundedCornerShape(16.dp))
-            .background(bg)
-            .then(
-                if (borderAlpha > 0f) {
-                    Modifier.border(
-                        BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = borderAlpha)),
-                        RoundedCornerShape(16.dp),
-                    )
-                } else {
-                    Modifier
-                },
-            )
+            .padding(vertical = 2.dp)
             .hoverable(interaction)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .pointerInput(note.id) {
@@ -269,71 +257,92 @@ private fun NoteRow(
                 }
             },
     ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
             if (row.depth > 0) {
                 TreeRail(
                     guides = row.guides,
                     color = railColor,
                     modifier = Modifier.fillMaxHeight(),
+                    connectorY = 22.dp,
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(6.dp))
             }
             Box(
-                Modifier
-                    .padding(top = 2.dp, end = 10.dp)
-                    .width(3.dp)
-                    .height(18.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(if (selected) scheme.primary else Color.Transparent),
-            )
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (note.pinned) {
-                        Icon(
-                            Icons.Filled.PushPin,
-                            contentDescription = null,
-                            tint = scheme.primary,
-                            modifier = Modifier.size(13.dp),
-                        )
-                        Spacer(Modifier.width(5.dp))
-                    }
-                    Text(
-                        note.title.ifBlank { "Untitled" },
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = if (selected) scheme.onSurface else scheme.onSurface.copy(alpha = 0.92f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .shadow(elevation, RoundedCornerShape(16.dp), clip = false)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(bg)
+                    .then(
+                        if (borderAlpha > 0f) {
+                            Modifier.border(
+                                BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = borderAlpha)),
+                                RoundedCornerShape(16.dp),
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Box(
+                        Modifier
+                            .padding(top = 2.dp, end = 10.dp)
+                            .width(3.dp)
+                            .height(18.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(if (selected) scheme.primary else Color.Transparent),
                     )
-                    if (row.hasChildren) {
-                        Spacer(Modifier.width(8.dp))
-                        SubnoteBadge(row.childCount)
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        DateLabel.short(note.modified),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant.copy(alpha = 0.78f),
-                    )
-                }
-                val snippet = note.snippet
-                if (snippet.isNotEmpty()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        snippet,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (note.tags.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = chipSpacing) {
-                        note.tags.take(4).forEach { TagChip(it) }
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (note.pinned) {
+                                Icon(
+                                    Icons.Filled.PushPin,
+                                    contentDescription = null,
+                                    tint = scheme.primary,
+                                    modifier = Modifier.size(13.dp),
+                                )
+                                Spacer(Modifier.width(5.dp))
+                            }
+                            Text(
+                                note.title.ifBlank { "Untitled" },
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = if (selected) scheme.onSurface else scheme.onSurface.copy(alpha = 0.92f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (row.hasChildren) {
+                                Spacer(Modifier.width(8.dp))
+                                SubnoteBadge(row.childCount)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                DateLabel.short(note.modified),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = scheme.onSurfaceVariant.copy(alpha = 0.78f),
+                            )
+                        }
+                        val snippet = note.snippet
+                        if (snippet.isNotEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                snippet,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (note.tags.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = chipSpacing) {
+                                note.tags.take(4).forEach { TagChip(it) }
+                            }
+                        }
                     }
                 }
             }
