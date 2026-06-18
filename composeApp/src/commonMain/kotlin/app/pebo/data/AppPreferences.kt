@@ -3,6 +3,9 @@ package app.pebo.data
 import okio.FileSystem
 import okio.Path
 
+/** Preference key for the user-chosen notes workspace folder (see the Storage settings). */
+const val PREF_NOTES_DIR: String = "storage.notesDir"
+
 /**
  * Tiny key/value preferences abstraction for app-level settings (theme, chosen folder, …).
  * Kept deliberately small and dependency-free so it works across every target.

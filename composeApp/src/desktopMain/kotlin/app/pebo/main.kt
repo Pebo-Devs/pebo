@@ -11,6 +11,7 @@ import app.pebo.core.Note
 import app.pebo.data.AppPreferences
 import app.pebo.data.FileAppPreferences
 import app.pebo.data.LocalNoteStore
+import app.pebo.data.PREF_NOTES_DIR
 import app.pebo.ui.NotesViewModel
 import com.sun.jna.Native
 import com.sun.jna.Pointer
@@ -28,13 +29,24 @@ import okio.Path
 import okio.Path.Companion.toPath
 
 fun main() = application {
-    val baseDir = (System.getProperty("user.home") + "/Pebo").toPath()
     val fs = FileSystem.SYSTEM
-    val store = LocalNoteStore(fs, baseDir)
-    seedWelcomeNoteIfNeeded(store, fs, baseDir)
+    val appDir = (System.getProperty("user.home") + "/Pebo").toPath()
+    // Prefs live in the fixed app dir so the chosen notes folder persists independently of it.
+    val prefs: AppPreferences = FileAppPreferences(fs, appDir / "settings.conf")
+    val notesBaseDir: Path = prefs.getString(PREF_NOTES_DIR)
+        ?.takeIf { it.isNotBlank() }
+        ?.toPath()
+        ?: appDir
+    val store = LocalNoteStore(fs, notesBaseDir)
+    seedWelcomeNoteIfNeeded(store, fs, notesBaseDir)
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val prefs: AppPreferences = FileAppPreferences(fs, baseDir / "settings.conf")
-    val vm = NotesViewModel(store, scope, prefs)
+    val vm = NotesViewModel(
+        store = store,
+        scope = scope,
+        prefs = prefs,
+        initialNotesDir = notesBaseDir.toString(),
+        storeFactory = { path -> LocalNoteStore(fs, path.toPath()) },
+    )
 
     val windowState = rememberWindowState(
         placement = WindowPlacement.Maximized,
@@ -48,7 +60,7 @@ fun main() = application {
         LaunchedEffect(Unit) {
             applyWindowsTitleBar(window)
         }
-        App(vm, baseDir.toString())
+        App(vm, notesBaseDir.toString())
     }
 }
 
