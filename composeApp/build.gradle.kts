@@ -48,6 +48,15 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Pebo"
             packageVersion = "1.0.0"
+            windows {
+                iconFile.set(rootProject.file("branding/pebo-icon.ico"))
+            }
+            macOS {
+                iconFile.set(rootProject.file("branding/pebo-logo.icns"))
+            }
+            linux {
+                iconFile.set(rootProject.file("branding/pebo-logo-512.png"))
+            }
         }
     }
 }
