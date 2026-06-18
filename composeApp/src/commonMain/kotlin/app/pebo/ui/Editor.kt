@@ -133,6 +133,7 @@ fun Editor(
         var writeNavTarget by remember(note.id) { mutableStateOf<Int?>(null) }
         val previewListState = remember(note.id) { LazyListState() }
         val outline = remember(value.text) { parseOutline(value.text) }
+        val wordCount = remember(value.text) { value.text.split(Regex("\\s+")).count { it.isNotBlank() } }
 
         fun applyEdit(newValue: TextFieldValue) {
             value = newValue
@@ -258,7 +259,7 @@ fun Editor(
                     modifier = Modifier.padding(top = 6.dp),
                 ) {
                     SaveStatus(saving = vm.saving)
-                    InfoPill("Markdown")
+                    InfoPill(if (wordCount == 1) "1 word" else "$wordCount words")
                     exportStatus?.let { InfoPill(it) }
                 }
             }
