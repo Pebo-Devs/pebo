@@ -49,7 +49,7 @@ fun VPaneDivider() {
         Modifier
             .fillMaxHeight()
             .width(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.52f)),
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
     )
 }
 
