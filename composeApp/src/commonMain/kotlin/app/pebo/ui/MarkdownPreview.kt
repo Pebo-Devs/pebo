@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -399,6 +400,12 @@ private fun QuoteBlock(content: AnnotatedString) {
 
 @Composable
 private fun CodeBlockView(block: MdBlock.Code) {
+    val plain = MaterialTheme.colorScheme.onSurface
+    val darkBg = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val colors = remember(darkBg, plain) { codeColors(darkBg, plain) }
+    val highlighted = remember(block.code, block.language, colors) {
+        buildHighlightedCode(block.code, block.language, colors)
+    }
     Column(
         Modifier
             .fillMaxWidth()
@@ -420,9 +427,10 @@ private fun CodeBlockView(block: MdBlock.Code) {
         }
         Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
             Text(
-                block.code,
+                highlighted,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 14.sp,
+                lineHeight = 21.sp,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(14.dp),
             )
