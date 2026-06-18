@@ -14,6 +14,12 @@ interface AppPreferences {
     fun getString(key: String): String?
     fun putString(key: String, value: String)
 
+    /** Every key currently set, so callers can enumerate dynamic groups (e.g. per-tag styles). */
+    fun keys(): Set<String> = emptySet()
+
+    /** Removes [key] if present; a no-op otherwise. */
+    fun remove(key: String) {}
+
     /** A no-op store so view models can be constructed in tests without touching disk. */
     object NoOp : AppPreferences {
         override fun getString(key: String): String? = null
@@ -50,8 +56,18 @@ class FileAppPreferences(
 
     override fun getString(key: String): String? = cache[key]
 
+    override fun keys(): Set<String> = cache.keys.toSet()
+
     override fun putString(key: String, value: String) {
         cache[key] = value
+        flush()
+    }
+
+    override fun remove(key: String) {
+        if (cache.remove(key) != null) flush()
+    }
+
+    private fun flush() {
         runCatching {
             file.parent?.let { fs.createDirectories(it) }
             fs.write(file) {
