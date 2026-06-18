@@ -61,6 +61,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -81,7 +82,7 @@ fun NoteList(
             .fillMaxHeight()
             .background(MaterialTheme.colorScheme.surfaceDim),
     ) {
-        Column(Modifier.padding(horizontal = 18.dp, vertical = 18.dp)) {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onMenu != null) {
                     IconButton(onClick = onMenu) {
@@ -91,7 +92,8 @@ fun NoteList(
                 Column(Modifier.weight(1f)) {
                     Text(
                         filterTitle(vm.filter),
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
