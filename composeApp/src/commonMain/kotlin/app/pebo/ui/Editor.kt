@@ -30,12 +30,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +74,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.pebo.core.Slug
+import app.pebo.export.ExportFormat
+import app.pebo.export.exportNote
+import app.pebo.export.pickSaveFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun Editor(
@@ -96,6 +107,9 @@ fun Editor(
         var showLinkDialog by remember(note.id) { mutableStateOf(false) }
         var showImageDialog by remember(note.id) { mutableStateOf(false) }
         var mode by remember(note.id) { mutableStateOf(EditorMode.Write) }
+        var showExportMenu by remember(note.id) { mutableStateOf(false) }
+        var exportStatus by remember(note.id) { mutableStateOf<String?>(null) }
+        val exportScope = rememberCoroutineScope()
 
         // Tag IntelliSense: caret-anchored autocomplete over known tags.
         val writeScroll = rememberScrollState()
@@ -117,6 +131,25 @@ fun Editor(
         fun applyEdit(newValue: TextFieldValue) {
             value = newValue
             vm.updateBody(note.id, newValue.text)
+        }
+
+        // Multi-format export: native "Save As" dialog (off the UI thread), then render + write.
+        fun runExport(format: ExportFormat) {
+            val current = value.text
+            val title = note.title
+            exportScope.launch(Dispatchers.Default) {
+                val defaultName = "${Slug.of(title).ifBlank { "note" }}.${format.ext}"
+                val dest = pickSaveFile("Export note", defaultName, format.ext) ?: return@launch
+                val ok = exportNote(format, title, current, dest, vm.notesDir.ifBlank { null })
+                exportStatus = if (ok) "Exported ${format.ext.uppercase()}" else "Export failed"
+            }
+        }
+
+        LaunchedEffect(exportStatus) {
+            if (exportStatus != null) {
+                delay(3500)
+                exportStatus = null
+            }
         }
 
         // Write-mode outline navigation: scroll the source field so the picked heading is near the top.
@@ -222,6 +255,7 @@ fun Editor(
                     ) {
                         SaveStatus(saving = vm.saving)
                         InfoPill("Markdown")
+                        exportStatus?.let { InfoPill(it) }
                         if (!note.trashed) {
                             PillAction("Add tag", onClick = { showTagDialog = true }, icon = Icons.Filled.Tag)
                             PillAction("Child note", onClick = { vm.createChildNote(note.id) }, icon = Icons.Filled.Add)
@@ -242,6 +276,29 @@ fun Editor(
                         tint = if (outlineOpen) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                Box {
+                    IconButton(onClick = { showExportMenu = true }) {
+                        Icon(
+                            Icons.Filled.IosShare,
+                            contentDescription = "Export note",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showExportMenu,
+                        onDismissRequest = { showExportMenu = false },
+                    ) {
+                        ExportFormat.entries.forEach { fmt ->
+                            DropdownMenuItem(
+                                text = { Text(fmt.label) },
+                                onClick = {
+                                    showExportMenu = false
+                                    runExport(fmt)
+                                },
+                            )
+                        }
+                    }
                 }
                 WritePreviewToggle(
                     mode = mode,
