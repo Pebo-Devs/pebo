@@ -29,9 +29,17 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,13 +47,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import app.pebo.core.DateLabel
 import app.pebo.core.NoteFilter
@@ -127,6 +144,8 @@ fun NoteList(
                     NoteRow(
                         row = row,
                         selected = row.note.id == vm.selectedId,
+                        inTrash = isTrash,
+                        vm = vm,
                         onClick = { vm.select(row.note.id) },
                     )
                 }
@@ -192,11 +211,19 @@ private fun noteCountLabel(count: Int, trash: Boolean): String =
     }
 
 @Composable
-private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
+private fun NoteRow(
+    row: NoteTreeRow,
+    selected: Boolean,
+    inTrash: Boolean,
+    vm: NotesViewModel,
+    onClick: () -> Unit,
+) {
     val note = row.note
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
     val scheme = MaterialTheme.colorScheme
+    var menuOpen by remember { mutableStateOf(false) }
+    var menuOffset by remember { mutableStateOf(Offset.Zero) }
 
     val targetBg = when {
         selected -> scheme.surfaceContainer
@@ -226,7 +253,19 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
                 },
             )
             .hoverable(interaction)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .pointerInput(note.id) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        if (event.type == PointerEventType.Press && event.buttons.isSecondaryPressed) {
+                            menuOffset = event.changes.first().position
+                            menuOpen = true
+                            event.changes.forEach { it.consume() }
+                        }
+                    }
+                }
+            },
     ) {
         Row(
             modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
@@ -297,7 +336,88 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
                 }
             }
         }
+
+        NoteRowContextMenu(
+            expanded = menuOpen,
+            offset = menuOffset,
+            inTrash = inTrash,
+            pinned = note.pinned,
+            onDismiss = { menuOpen = false },
+            onOpen = { onClick(); menuOpen = false },
+            onTogglePin = { vm.togglePin(note.id); menuOpen = false },
+            onAddChild = { vm.createChildNote(note.id); menuOpen = false },
+            onTrash = { vm.trash(note.id); menuOpen = false },
+            onRestore = { vm.restore(note.id); menuOpen = false },
+            onPurge = { vm.purge(note.id); menuOpen = false },
+        )
     }
+}
+
+@Composable
+private fun NoteRowContextMenu(
+    expanded: Boolean,
+    offset: Offset,
+    inTrash: Boolean,
+    pinned: Boolean,
+    onDismiss: () -> Unit,
+    onOpen: () -> Unit,
+    onTogglePin: () -> Unit,
+    onAddChild: () -> Unit,
+    onTrash: () -> Unit,
+    onRestore: () -> Unit,
+    onPurge: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val dpOffset = with(LocalDensity.current) { DpOffset(offset.x.toDp(), offset.y.toDp()) }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        offset = dpOffset,
+        shape = RoundedCornerShape(13.dp),
+        containerColor = scheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.7f)),
+        shadowElevation = 16.dp,
+        modifier = Modifier.width(238.dp),
+    ) {
+        if (inTrash) {
+            ContextMenuRow(Icons.Filled.RestoreFromTrash, "Restore note", onClick = onRestore)
+            ContextMenuDivider()
+            ContextMenuRow(Icons.Filled.DeleteForever, "Delete permanently", destructive = true, onClick = onPurge)
+        } else {
+            ContextMenuRow(Icons.Filled.OpenInFull, "Open note", onClick = onOpen)
+            ContextMenuRow(Icons.Filled.PushPin, if (pinned) "Unpin from top" else "Pin to top", onClick = onTogglePin)
+            ContextMenuRow(Icons.Filled.SubdirectoryArrowRight, "Add child note", onClick = onAddChild)
+            ContextMenuDivider()
+            ContextMenuRow(Icons.Filled.Delete, "Move to Trash", destructive = true, onClick = onTrash)
+        }
+    }
+}
+
+@Composable
+private fun ContextMenuRow(
+    icon: ImageVector,
+    label: String,
+    destructive: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val fg = if (destructive) scheme.error else scheme.onSurface
+    DropdownMenuItem(
+        text = { Text(label, style = MaterialTheme.typography.bodyMedium, color = fg) },
+        onClick = onClick,
+        leadingIcon = {
+            Icon(icon, contentDescription = null, tint = fg.copy(alpha = 0.85f), modifier = Modifier.size(18.dp))
+        },
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+private fun ContextMenuDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+    )
 }
 
 /**
