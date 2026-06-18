@@ -11,8 +11,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -281,8 +287,19 @@ private fun inlineAnnotated(raw: String, c: InlineColors): AnnotatedString = bui
 private val headingSizes = listOf(30.sp, 24.sp, 20.sp, 17.sp, 15.sp, 14.sp)
 
 @Composable
-fun MarkdownPreview(text: String, modifier: Modifier = Modifier) {
+fun MarkdownPreview(
+    text: String,
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+    collapsed: Set<Int> = emptySet(),
+    onToggleFold: ((Int) -> Unit)? = null,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    scrollToOrdinal: Int? = null,
+    onScrollConsumed: () -> Unit = {},
+) {
     val blocks = remember(text) { parseMarkdownBlocks(text) }
+    val visible = remember(blocks, collapsed) { visibleBlockIndices(blocks, collapsed) }
+    val headingBlockIndices = remember(blocks) { blocks.indices.filter { blocks[it] is MdBlock.Heading } }
     val colors = InlineColors(
         code = MaterialTheme.colorScheme.onSurface,
         codeBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -292,21 +309,40 @@ fun MarkdownPreview(text: String, modifier: Modifier = Modifier) {
     val body = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        if (blocks.isEmpty()) {
-            Text(
-                "Nothing to preview yet.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = muted.copy(alpha = 0.7f),
-            )
+    // Scroll the preview to a heading requested from the outline panel.
+    LaunchedEffect(scrollToOrdinal, visible) {
+        val ord = scrollToOrdinal ?: return@LaunchedEffect
+        val blockIndex = headingBlockIndices.getOrNull(ord)
+        val row = blockIndex?.let { visible.indexOf(it) } ?: -1
+        if (row >= 0) listState.animateScrollToItem(row)
+        onScrollConsumed()
+    }
+
+    LazyColumn(
+        modifier = modifier,
+        state = listState,
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        if (visible.isEmpty()) {
+            item {
+                Text(
+                    "Nothing to preview yet.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = muted.copy(alpha = 0.7f),
+                )
+            }
         }
-        for (block in blocks) {
-            when (block) {
-                is MdBlock.Heading -> Text(
-                    inlineAnnotated(block.text, colors),
+        items(visible, key = { it }) { bi ->
+            when (val block = blocks[bi]) {
+                is MdBlock.Heading -> FoldableHeadingRow(
+                    text = inlineAnnotated(block.text, colors),
                     fontSize = headingSizes[(block.level - 1).coerceIn(0, 5)],
-                    fontWeight = FontWeight.Bold,
-                    color = body,
+                    body = body,
+                    collapsed = bi in collapsed,
+                    foldable = sectionEnd(blocks, bi) > bi + 1,
+                    showControls = onToggleFold != null,
+                    onToggle = { onToggleFold?.invoke(bi) },
                 )
                 is MdBlock.Paragraph -> Text(
                     inlineAnnotated(block.text, colors),
