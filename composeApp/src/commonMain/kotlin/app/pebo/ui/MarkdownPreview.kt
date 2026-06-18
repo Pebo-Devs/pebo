@@ -322,7 +322,12 @@ fun MarkdownPreview(text: String, modifier: Modifier = Modifier) {
                     for (task in block.items) TaskRow(task, colors, body, muted)
                 }
                 is MdBlock.Quote -> QuoteBlock(inlineAnnotated(block.text, colors))
-                is MdBlock.Code -> CodeBlockView(block)
+                is MdBlock.Code ->
+                    if (block.language?.equals("mermaid", ignoreCase = true) == true) {
+                        MermaidView(block.code)
+                    } else {
+                        CodeBlockView(block)
+                    }
                 is MdBlock.Table -> TableView(block, colors, body)
                 is MdBlock.Image -> ImagePlaceholder(block, muted)
                 MdBlock.Rule -> Box(
