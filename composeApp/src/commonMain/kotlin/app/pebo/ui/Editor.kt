@@ -41,16 +41,27 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -82,6 +93,13 @@ fun Editor(
         var showLinkDialog by remember(note.id) { mutableStateOf(false) }
         var showImageDialog by remember(note.id) { mutableStateOf(false) }
         var mode by remember(note.id) { mutableStateOf(EditorMode.Write) }
+
+        // Tag IntelliSense: caret-anchored autocomplete over known tags.
+        val writeScroll = rememberScrollState()
+        var textLayout by remember(note.id) { mutableStateOf<TextLayoutResult?>(null) }
+        var fieldOrigin by remember(note.id) { mutableStateOf(Offset.Zero) }
+        var acIndex by remember(note.id) { mutableIntStateOf(0) }
+        var acDismissed by remember(note.id) { mutableStateOf<String?>(null) }
 
         fun applyEdit(newValue: TextFieldValue) {
             value = newValue
@@ -252,6 +270,25 @@ fun Editor(
             }
         }
 
+        val tagCandidates = vm.tagRows.map { TagCandidate(it.name, it.count) }
+        val acQuery =
+            if (!note.trashed && mode == EditorMode.Write && value.selection.collapsed) {
+                tagCompletionContext(value.text, value.selection.start)
+            } else null
+        val acSuggestions = remember(acQuery, tagCandidates) {
+            acQuery?.let { rankTagSuggestions(it.query, tagCandidates) } ?: emptyList()
+        }
+        LaunchedEffect(acQuery?.query) { acIndex = 0 }
+        val acOpen = acSuggestions.isNotEmpty() && acQuery?.query != acDismissed
+
+        fun acceptCompletion(cand: TagCandidate) {
+            val q = acQuery ?: return
+            val insert = "#" + cand.name
+            val newText = value.text.substring(0, q.start) + insert + value.text.substring(q.end)
+            applyEdit(TextFieldValue(newText, TextRange(q.start + insert.length)))
+            acDismissed = null
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -278,11 +315,35 @@ fun Editor(
                         readOnly = note.trashed,
                         modifier = Modifier
                             .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(top = 30.dp, bottom = 64.dp),
+                            .verticalScroll(writeScroll)
+                            .padding(top = 30.dp, bottom = 64.dp)
+                            .onGloballyPositioned { fieldOrigin = it.positionInWindow() }
+                            .onPreviewKeyEvent { ev ->
+                                if (!acOpen || ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                when (ev.key) {
+                                    Key.DirectionDown -> {
+                                        acIndex = (acIndex + 1) % acSuggestions.size
+                                        true
+                                    }
+                                    Key.DirectionUp -> {
+                                        acIndex = (acIndex - 1 + acSuggestions.size) % acSuggestions.size
+                                        true
+                                    }
+                                    Key.Enter, Key.NumPadEnter, Key.Tab -> {
+                                        acceptCompletion(acSuggestions[acIndex.coerceIn(0, acSuggestions.lastIndex)])
+                                        true
+                                    }
+                                    Key.Escape -> {
+                                        acDismissed = acQuery?.query
+                                        true
+                                    }
+                                    else -> false
+                                }
+                            },
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         visualTransformation = transformation,
+                        onTextLayout = { textLayout = it },
                         decorationBox = { inner ->
                             if (value.text.isEmpty() && !note.trashed) {
                                 Column {
@@ -302,6 +363,21 @@ fun Editor(
                             inner()
                         },
                     )
+
+                    if (acOpen) {
+                        val caretPos = value.selection.start
+                        val rect = textLayout?.let { runCatching { it.getCursorRect(caretPos) }.getOrNull() }
+                        if (rect != null) {
+                            TagCompletionPopup(
+                                anchorLeft = fieldOrigin.x + rect.left,
+                                anchorTop = fieldOrigin.y + rect.top - writeScroll.value,
+                                anchorBottom = fieldOrigin.y + rect.bottom - writeScroll.value,
+                                suggestions = acSuggestions,
+                                selectedIndex = acIndex.coerceIn(0, acSuggestions.lastIndex),
+                                onPick = { acceptCompletion(it) },
+                            )
+                        }
+                    }
                 }
             }
         }
