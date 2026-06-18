@@ -13,10 +13,31 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class TagEntry(val name: String, val count: Int)
+
+/** One row in the flattened tag tree; see [NotesViewModel.tagRows]. [guides] mirrors [NoteTreeRow.guides]. */
+data class TagRow(
+    val name: String,
+    val leaf: String,
+    val count: Int,
+    val depth: Int,
+    val hasChildren: Boolean,
+    val guides: List<Boolean>,
+)
+
+/**
+ * One row in the flattened note tree.
+ *
+ * [guides] has one entry per ancestor column (length == [depth]); `true` means that column should
+ * draw a continuing vertical rail (the ancestor at that level has a following sibling). The last
+ * entry doubles as this row's own connector: `true` → a `├` tee (more siblings below), `false` → a
+ * `└` elbow (last child). Roots have an empty list and draw no rails.
+ */
 data class NoteTreeRow(
     val note: Note,
     val depth: Int,
     val hasChildren: Boolean,
+    val childCount: Int,
+    val guides: List<Boolean>,
 )
 
 /**
@@ -68,6 +89,54 @@ class NotesViewModel(
             return counts.entries
                 .sortedBy { it.key.lowercase() }
                 .map { TagEntry(it.key, it.value) }
+        }
+
+    /**
+     * The tag hierarchy as a flattened tree. Nested tags like `project/pebo` synthesise their
+     * ancestor nodes (`project`) even when no note carries the bare parent tag, so the sidebar can
+     * draw a complete tree. A node's count includes every note under it (self or any descendant),
+     * matching how the [NoteFilter.Tag] filter resolves prefixes.
+     */
+    val tagRows: List<TagRow>
+        get() {
+            val names = HashSet<String>()
+            for (n in active) {
+                for (t in n.tags) {
+                    val parts = t.split('/')
+                    for (i in 1..parts.size) names.add(parts.subList(0, i).joinToString("/"))
+                }
+            }
+            if (names.isEmpty()) return emptyList()
+
+            val childrenOf = HashMap<String, MutableList<String>>()
+            for (name in names) {
+                val parent = if ('/' in name) name.substringBeforeLast('/') else ""
+                childrenOf.getOrPut(parent) { mutableListOf() }.add(name)
+            }
+            for (list in childrenOf.values) list.sortBy { it.substringAfterLast('/').lowercase() }
+
+            fun countFor(name: String): Int =
+                active.count { n -> n.tags.any { it == name || it.startsWith("$name/") } }
+
+            val rows = ArrayList<TagRow>(names.size)
+            fun visit(name: String, guides: List<Boolean>) {
+                val kids = childrenOf[name].orEmpty()
+                rows.add(
+                    TagRow(
+                        name = name,
+                        leaf = name.substringAfterLast('/'),
+                        count = countFor(name),
+                        depth = guides.size,
+                        hasChildren = kids.isNotEmpty(),
+                        guides = guides,
+                    ),
+                )
+                kids.forEachIndexed { index, kid ->
+                    visit(kid, guides + (index != kids.lastIndex))
+                }
+            }
+            childrenOf[""].orEmpty().forEach { visit(it, emptyList()) }
+            return rows
         }
 
     val untaggedCount: Int get() = active.count { it.tags.isEmpty() }
@@ -211,15 +280,25 @@ class NotesViewModel(
         val rows = ArrayList<NoteTreeRow>(notes.size)
         val visited = HashSet<String>()
 
-        fun visit(note: Note, depth: Int) {
+        fun visit(note: Note, guides: List<Boolean>) {
             if (!visited.add(note.id)) return
             val children = childrenByParent[note.id].orEmpty()
-            rows.add(NoteTreeRow(note = note, depth = depth, hasChildren = children.isNotEmpty()))
-            children.forEach { visit(it, depth + 1) }
+            rows.add(
+                NoteTreeRow(
+                    note = note,
+                    depth = guides.size,
+                    hasChildren = children.isNotEmpty(),
+                    childCount = children.size,
+                    guides = guides,
+                ),
+            )
+            children.forEachIndexed { index, child ->
+                visit(child, guides + (index != children.lastIndex))
+            }
         }
 
-        roots.forEach { visit(it, 0) }
-        notes.filter { it.id !in visited }.forEach { visit(it, 0) }
+        roots.forEach { visit(it, emptyList()) }
+        notes.filter { it.id !in visited }.forEach { visit(it, emptyList()) }
         return rows
     }
 

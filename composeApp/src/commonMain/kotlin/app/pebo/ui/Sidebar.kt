@@ -1,6 +1,7 @@
 package app.pebo.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,8 +31,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.pebo.core.NoteFilter
 
@@ -120,20 +125,17 @@ fun Sidebar(vm: NotesViewModel, modifier: Modifier = Modifier) {
             count = vm.trashed.size,
         )
 
-        val tags = vm.tags
-        if (tags.isNotEmpty()) {
+        val tagRows = vm.tagRows
+        if (tagRows.isNotEmpty()) {
             Spacer(Modifier.height(18.dp))
             SectionLabel("Tags", modifier = Modifier.padding(start = 10.dp, bottom = 6.dp))
             LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
-                items(tags, key = { it.name }) { entry ->
+                items(tagRows, key = { it.name }) { row ->
                     val current = vm.filter
-                    SidebarItem(
-                        label = entry.name.substringAfterLast('/'),
-                        icon = Icons.Filled.Tag,
-                        selected = current is NoteFilter.Tag && current.name == entry.name,
-                        onClick = { vm.selectFilter(NoteFilter.Tag(entry.name)) },
-                        count = entry.count,
-                        indentLevel = entry.name.count { it == '/' },
+                    TagTreeItem(
+                        row = row,
+                        selected = current is NoteFilter.Tag && current.name == row.name,
+                        onClick = { vm.selectFilter(NoteFilter.Tag(row.name)) },
                     )
                 }
             }
@@ -179,5 +181,56 @@ fun Sidebar(vm: NotesViewModel, modifier: Modifier = Modifier) {
             selected = vm.showSettings,
             onClick = { vm.openSettings() },
         )
+    }
+}
+
+/**
+ * One tag in the sidebar tree. Roots look like a normal [SidebarItem]; nested tags get a [TreeRail]
+ * so the parent/child relationship reads at a glance, mirroring the note-list hierarchy.
+ */
+@Composable
+private fun TagTreeItem(row: TagRow, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent
+    val railColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f)
+    val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 1.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(start = 10.dp, end = 10.dp)
+            .height(36.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (row.depth > 0) {
+            TreeRail(
+                guides = row.guides,
+                color = railColor,
+                connectorY = 18.dp,
+                modifier = Modifier.fillMaxHeight(),
+            )
+            Spacer(Modifier.width(6.dp))
+        }
+        Icon(
+            Icons.Filled.Tag,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(15.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            row.leaf,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (row.count > 0) {
+            CountPill(row.count)
+        }
     }
 }
