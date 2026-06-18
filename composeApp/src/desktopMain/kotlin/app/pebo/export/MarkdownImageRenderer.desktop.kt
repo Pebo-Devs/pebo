@@ -54,6 +54,7 @@ private const val QUOTE_BAR = 0xFFD0D7DE.toInt()
 private const val TABLE_BORDER = 0xFFD0D7DE.toInt()
 private const val TABLE_HEADER_BG = 0xFFF3F4F6.toInt()
 private const val RULE = 0xFFD0D7DE.toInt()
+private const val HIGHLIGHT_BG = 0xFFFFF3A3.toInt()
 
 // Font sizes (px).
 private const val BODY = 26f
@@ -71,6 +72,7 @@ private data class Fmt(
     val italic: Boolean = false,
     val mono: Boolean = false,
     val strike: Boolean = false,
+    val highlight: Boolean = false,
 )
 
 private fun Fmt.textStyle(): TextStyle {
@@ -84,6 +86,7 @@ private fun Fmt.textStyle(): TextStyle {
     ts.setFontStyle(style)
     ts.setFontFamilies(if (mono) MONO else SANS)
     if (strike) ts.setDecorationStyle(DecorationStyle(false, false, true, false, color, DecorationLineStyle.SOLID, 1f))
+    if (highlight) ts.setBackground(Paint().also { it.color = HIGHLIGHT_BG })
     return ts
 }
 
@@ -93,8 +96,13 @@ private fun emitSpans(b: ParagraphBuilder, spans: List<InlineSpan>, f: Fmt) {
         is InlineSpan.Bold -> emitSpans(b, s.children, f.copy(bold = true))
         is InlineSpan.Italic -> emitSpans(b, s.children, f.copy(italic = true))
         is InlineSpan.Strike -> emitSpans(b, s.children, f.copy(strike = true))
+        is InlineSpan.Highlight -> emitSpans(b, s.children, f.copy(highlight = true, color = TEXT))
         is InlineSpan.Code -> { b.pushStyle(f.copy(mono = true, color = INLINE_CODE).textStyle()); b.addText(s.text); b.popStyle() }
         is InlineSpan.Link -> { b.pushStyle(f.copy(color = LINK).textStyle()); b.addText(s.label); b.popStyle() }
+        is InlineSpan.Image -> {
+            val label = if (s.alt.isNotBlank()) "\uD83D\uDDBC ${s.alt}" else "\uD83D\uDDBC image"
+            b.pushStyle(f.copy(color = MUTED, italic = true).textStyle()); b.addText(label); b.popStyle()
+        }
         is InlineSpan.Tag -> { b.pushStyle(f.copy(color = TAG, bold = true).textStyle()); b.addText(s.text); b.popStyle() }
     }
 }

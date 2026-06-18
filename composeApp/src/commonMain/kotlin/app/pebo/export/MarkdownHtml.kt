@@ -88,10 +88,14 @@ private fun spansToHtml(spans: List<InlineSpan>): String {
             is InlineSpan.Bold -> sb.append("<strong>").append(spansToHtml(s.children)).append("</strong>")
             is InlineSpan.Italic -> sb.append("<em>").append(spansToHtml(s.children)).append("</em>")
             is InlineSpan.Strike -> sb.append("<del>").append(spansToHtml(s.children)).append("</del>")
+            is InlineSpan.Highlight -> sb.append("<mark>").append(spansToHtml(s.children)).append("</mark>")
             is InlineSpan.Code -> sb.append("<code>").append(escapeHtml(s.text)).append("</code>")
             is InlineSpan.Link ->
                 sb.append("<a href=\"").append(escapeAttr(s.url)).append("\">")
                     .append(escapeHtml(s.label)).append("</a>")
+            is InlineSpan.Image ->
+                sb.append("<img class=\"inline-img\" src=\"").append(escapeAttr(s.url))
+                    .append("\" alt=\"").append(escapeAttr(s.alt)).append("\">")
             is InlineSpan.Tag ->
                 sb.append("<span class=\"tag\">").append(escapeHtml(s.text)).append("</span>")
         }
@@ -173,6 +177,8 @@ th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
 thead th { background: #f3f4f6; font-weight: 700; }
 tbody tr:nth-child(even) { background: #fafbfc; }
 .tag { color: #0d9488; font-weight: 600; }
+mark { background: #fff3a3; color: #1f2328; padding: .05em .25em; border-radius: 4px; }
+img.inline-img { max-width: 100%; height: auto; vertical-align: middle; border-radius: 6px; }
 .img img { max-width: 100%; height: auto; border-radius: 10px; }
 @media (prefers-color-scheme: dark) {
   body { background: #0d1117; color: #e6edf3; }
@@ -181,5 +187,6 @@ tbody tr:nth-child(even) { background: #fafbfc; }
   blockquote { background: #161b22; border-left-color: #30363d; color: #8b949e; }
   th, td { border-color: #30363d; } thead th { background: #21262d; }
   tbody tr:nth-child(even) { background: #1c2230; } hr { border-top-color: #30363d; }
+  mark { background: #5c5316; color: #f5e9b8; }
 }
 """.trim()

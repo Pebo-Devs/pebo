@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.pebo.export.InlineSpan
+import app.pebo.export.parseInline
 
 /**
  * A from-scratch Compose renderer for the raw Markdown editing buffer. The editor stays the source of
@@ -211,75 +213,48 @@ private data class InlineColors(
     val codeBg: Color,
     val link: Color,
     val tag: Color,
+    val highlightBg: Color,
+    val muted: Color,
 )
 
-/** Renders inline spans (bold/italic/strike/code/link/tag), removing the markers. */
+/** A warm amber highlight readable on both light and dark surfaces (`==text==`). */
+private fun highlightColor(surface: Color): Color =
+    if (surface.luminance() < 0.5f) Color(0xFF5C5316).copy(alpha = 0.85f) else Color(0xFFFFF3A3)
+
+/** Renders inline spans (bold/italic/strike/highlight/code/link/image/tag) via the shared parser. */
 private fun inlineAnnotated(raw: String, c: InlineColors): AnnotatedString = buildAnnotatedString {
-    var i = 0
-    val n = raw.length
-    while (i < n) {
-        val ch = raw[i]
-        when {
-            ch == '`' -> {
-                val end = raw.indexOf('`', i + 1)
-                if (end > i) {
-                    pushStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = c.code, background = c.codeBg))
-                    append(raw.substring(i + 1, end))
-                    pop()
-                    i = end + 1
-                } else { append(ch); i++ }
-            }
-            ch == '*' && i + 1 < n && raw[i + 1] == '*' -> {
-                val end = raw.indexOf("**", i + 2)
-                if (end > i + 1) {
-                    pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                    append(inlineAnnotated(raw.substring(i + 2, end), c))
-                    pop()
-                    i = end + 2
-                } else { append(ch); i++ }
-            }
-            ch == '~' && i + 1 < n && raw[i + 1] == '~' -> {
-                val end = raw.indexOf("~~", i + 2)
-                if (end > i + 1) {
-                    pushStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
-                    append(inlineAnnotated(raw.substring(i + 2, end), c))
-                    pop()
-                    i = end + 2
-                } else { append(ch); i++ }
-            }
-            (ch == '*' || ch == '_') -> {
-                val end = raw.indexOf(ch, i + 1)
-                if (end > i + 1) {
-                    pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
-                    append(inlineAnnotated(raw.substring(i + 1, end), c))
-                    pop()
-                    i = end + 1
-                } else { append(ch); i++ }
-            }
-            ch == '[' -> {
-                val close = raw.indexOf(']', i + 1)
-                if (close > i && close + 1 < n && raw[close + 1] == '(') {
-                    val urlEnd = raw.indexOf(')', close + 2)
-                    if (urlEnd > close) {
-                        val label = raw.substring(i + 1, close)
-                        pushStyle(SpanStyle(color = c.link, textDecoration = TextDecoration.Underline))
-                        append(label)
-                        pop()
-                        i = urlEnd + 1
-                    } else { append(ch); i++ }
-                } else { append(ch); i++ }
-            }
-            ch == '#' && (i == 0 || raw[i - 1].isWhitespace()) -> {
-                var j = i + 1
-                while (j < n && !raw[j].isWhitespace()) j++
-                if (j > i + 1) {
-                    pushStyle(SpanStyle(color = c.tag, fontWeight = FontWeight.Medium))
-                    append(raw.substring(i, j))
-                    pop()
-                    i = j
-                } else { append(ch); i++ }
-            }
-            else -> { append(ch); i++ }
+    appendSpans(parseInline(raw), c)
+}
+
+private fun AnnotatedString.Builder.appendSpans(spans: List<InlineSpan>, c: InlineColors) {
+    for (s in spans) when (s) {
+        is InlineSpan.Text -> append(s.text)
+        is InlineSpan.Bold -> {
+            pushStyle(SpanStyle(fontWeight = FontWeight.Bold)); appendSpans(s.children, c); pop()
+        }
+        is InlineSpan.Italic -> {
+            pushStyle(SpanStyle(fontStyle = FontStyle.Italic)); appendSpans(s.children, c); pop()
+        }
+        is InlineSpan.Strike -> {
+            pushStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)); appendSpans(s.children, c); pop()
+        }
+        is InlineSpan.Highlight -> {
+            pushStyle(SpanStyle(background = c.highlightBg)); appendSpans(s.children, c); pop()
+        }
+        is InlineSpan.Code -> {
+            pushStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = c.code, background = c.codeBg))
+            append(s.text); pop()
+        }
+        is InlineSpan.Link -> {
+            pushStyle(SpanStyle(color = c.link, textDecoration = TextDecoration.Underline))
+            append(s.label); pop()
+        }
+        is InlineSpan.Image -> {
+            pushStyle(SpanStyle(color = c.muted, fontStyle = FontStyle.Italic))
+            append(if (s.alt.isNotBlank()) "\uD83D\uDDBC ${s.alt}" else "\uD83D\uDDBC image"); pop()
+        }
+        is InlineSpan.Tag -> {
+            pushStyle(SpanStyle(color = c.tag, fontWeight = FontWeight.Medium)); append(s.text); pop()
         }
     }
 }
@@ -305,6 +280,8 @@ fun MarkdownPreview(
         codeBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         link = MaterialTheme.colorScheme.primary,
         tag = MaterialTheme.colorScheme.primary,
+        highlightBg = highlightColor(MaterialTheme.colorScheme.surface),
+        muted = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     val body = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
