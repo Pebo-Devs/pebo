@@ -4,9 +4,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import app.pebo.core.Note
+import app.pebo.data.AppPreferences
+import app.pebo.data.FileAppPreferences
 import app.pebo.data.LocalNoteStore
 import app.pebo.ui.NotesViewModel
 import com.sun.jna.Native
@@ -30,9 +33,13 @@ fun main() = application {
     val store = LocalNoteStore(fs, baseDir)
     seedWelcomeNoteIfNeeded(store, fs, baseDir)
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val vm = NotesViewModel(store, scope)
+    val prefs: AppPreferences = FileAppPreferences(fs, baseDir / "settings.conf")
+    val vm = NotesViewModel(store, scope, prefs)
 
-    val windowState = rememberWindowState(size = DpSize(1220.dp, 760.dp))
+    val windowState = rememberWindowState(
+        placement = WindowPlacement.Maximized,
+        size = DpSize(1280.dp, 820.dp),
+    )
     Window(
         onCloseRequest = ::exitApplication,
         title = "Pebo",

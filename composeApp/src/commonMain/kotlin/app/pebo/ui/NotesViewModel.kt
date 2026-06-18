@@ -6,7 +6,10 @@ import androidx.compose.runtime.setValue
 import app.pebo.core.Note
 import app.pebo.core.NoteFilter
 import app.pebo.core.nowIso
+import app.pebo.data.AppPreferences
 import app.pebo.data.NoteStore
+import app.pebo.ui.theme.Palettes
+import app.pebo.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -47,6 +50,7 @@ data class NoteTreeRow(
 class NotesViewModel(
     private val store: NoteStore,
     private val scope: CoroutineScope,
+    private val prefs: AppPreferences = AppPreferences.NoOp,
 ) {
     var active by mutableStateOf<List<Note>>(emptyList())
         private set
@@ -64,8 +68,16 @@ class NotesViewModel(
         private set
     var storageProvider by mutableStateOf(StorageProvider.Local)
         private set
+    var themeMode by mutableStateOf(ThemeMode.System)
+        private set
+    var paletteId by mutableStateOf(Palettes.DEFAULT_ID)
+        private set
 
     init {
+        prefs.getString(KEY_PALETTE)?.let { paletteId = it }
+        prefs.getString(KEY_MODE)?.let { stored ->
+            runCatching { ThemeMode.valueOf(stored) }.getOrNull()?.let { themeMode = it }
+        }
         refresh()
     }
 
@@ -271,6 +283,16 @@ class NotesViewModel(
         if (provider.available) storageProvider = provider
     }
 
+    fun selectPalette(id: String) {
+        paletteId = id
+        prefs.putString(KEY_PALETTE, id)
+    }
+
+    fun updateThemeMode(mode: ThemeMode) {
+        themeMode = mode
+        prefs.putString(KEY_MODE, mode.name)
+    }
+
     private fun buildTreeRows(notes: List<Note>): List<NoteTreeRow> {
         val ids = notes.mapTo(HashSet()) { it.id }
         val childrenByParent = notes
@@ -317,5 +339,10 @@ class NotesViewModel(
             }
             .trim('/')
         return tag.takeIf { it.isNotBlank() }
+    }
+
+    private companion object {
+        const val KEY_PALETTE = "theme.palette"
+        const val KEY_MODE = "theme.mode"
     }
 }

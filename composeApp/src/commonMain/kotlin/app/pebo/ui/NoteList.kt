@@ -1,7 +1,15 @@
 package app.pebo.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,9 +38,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,7 +62,7 @@ fun NoteList(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
+            .background(MaterialTheme.colorScheme.surfaceDim),
     ) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -183,19 +194,39 @@ private fun noteCountLabel(count: Int, trash: Boolean): String =
 @Composable
 private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
     val note = row.note
-    val railColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f)
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = if (selected) MaterialTheme.colorScheme.background.copy(alpha = 0.96f) else Color.Transparent,
-        border = if (selected) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.74f))
-        } else {
-            null
-        },
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    val scheme = MaterialTheme.colorScheme
+
+    val targetBg = when {
+        selected -> scheme.surfaceContainer
+        hovered -> scheme.surfaceContainer.copy(alpha = 0.5f)
+        else -> Color.Transparent
+    }
+    val bg by animateColorAsState(targetBg, label = "rowBg")
+    val borderAlpha by animateFloatAsState(if (selected) 0.8f else 0f, label = "rowBorder")
+    val elevation by animateDpAsState(if (selected) 10.dp else 0.dp, label = "rowElev")
+    val railColor = scheme.onSurfaceVariant.copy(alpha = if (selected || hovered) 0.68f else 0.5f)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp),
+            .padding(vertical = 3.dp)
+            .shadow(elevation, RoundedCornerShape(16.dp), clip = false)
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .then(
+                if (borderAlpha > 0f) {
+                    Modifier.border(
+                        BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = borderAlpha)),
+                        RoundedCornerShape(16.dp),
+                    )
+                } else {
+                    Modifier
+                },
+            )
+            .hoverable(interaction)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
     ) {
         Row(
             modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
@@ -209,23 +240,21 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
                 )
                 Spacer(Modifier.width(8.dp))
             }
-            if (selected) {
-                Box(
-                    Modifier
-                        .padding(top = 2.dp)
-                        .width(3.dp)
-                        .height(18.dp)
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)),
-                )
-                Spacer(Modifier.width(10.dp))
-            }
+            Box(
+                Modifier
+                    .padding(top = 2.dp, end = 10.dp)
+                    .width(3.dp)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (selected) scheme.primary else Color.Transparent),
+            )
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (note.pinned) {
                         Icon(
                             Icons.Filled.PushPin,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = scheme.primary,
                             modifier = Modifier.size(13.dp),
                         )
                         Spacer(Modifier.width(5.dp))
@@ -234,6 +263,7 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
                         note.title.ifBlank { "Untitled" },
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.titleSmall,
+                        color = if (selected) scheme.onSurface else scheme.onSurface.copy(alpha = 0.92f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -245,7 +275,7 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
                     Text(
                         DateLabel.short(note.modified),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.78f),
                     )
                 }
                 val snippet = note.snippet
@@ -254,7 +284,7 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
                     Text(
                         snippet,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = scheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
