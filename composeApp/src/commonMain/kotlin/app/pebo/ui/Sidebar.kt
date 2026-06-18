@@ -1,7 +1,11 @@
 package app.pebo.ui
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +33,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -190,16 +196,25 @@ fun Sidebar(vm: NotesViewModel, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun TagTreeItem(row: TagRow, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent
-    val railColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f)
-    val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
+    val scheme = MaterialTheme.colorScheme
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    val target = when {
+        selected -> scheme.primary.copy(alpha = 0.14f)
+        hovered -> scheme.onSurface.copy(alpha = 0.06f)
+        else -> Color.Transparent
+    }
+    val bg by animateColorAsState(target, label = "tagBg")
+    val railColor = scheme.onSurfaceVariant.copy(alpha = if (selected || hovered) 0.66f else 0.5f)
+    val tint = if (selected) scheme.primary else scheme.onSurfaceVariant.copy(alpha = 0.82f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 1.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
-            .clickable(onClick = onClick)
+            .hoverable(interaction)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(start = 10.dp, end = 10.dp)
             .height(36.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -225,7 +240,7 @@ private fun TagTreeItem(row: TagRow, selected: Boolean, onClick: () -> Unit) {
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (selected) scheme.onSurface else scheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

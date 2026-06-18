@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,7 +66,7 @@ fun Editor(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.surfaceBright),
     ) {
         if (note == null) {
             WelcomeWorkspace(onCreate = { vm.createNote() })
@@ -135,9 +137,8 @@ fun Editor(
                         .padding(top = 5.dp)
                         .horizontalScroll(rememberScrollState()),
                 ) {
-                    InfoPill(if (vm.saving) "Saving" else "Saved")
+                    SaveStatus(saving = vm.saving)
                     InfoPill("Markdown")
-                    note.tags.take(3).forEach { TagChip(it) }
                     if (!note.trashed) {
                         PillAction("Add tag", onClick = { showTagDialog = true }, icon = Icons.Filled.Tag)
                         PillAction("Child note", onClick = { vm.createChildNote(note.id) }, icon = Icons.Filled.Add)
@@ -165,6 +166,13 @@ fun Editor(
             }
         }
 
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        )
+
         if (note.trashed) {
             Row(
                 modifier = Modifier
@@ -187,15 +195,14 @@ fun Editor(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 34.dp, vertical = 4.dp),
-                contentAlignment = Alignment.TopCenter,
+                    .padding(horizontal = 40.dp, vertical = 10.dp),
             ) {
                 EditorToolbar(
                     state = state,
                     onLink = { showLinkDialog = true },
                     modifier = Modifier
-                        .fillMaxWidth(0.84f)
-                        .widthIn(max = 820.dp),
+                        .widthIn(max = READING_WIDTH)
+                        .fillMaxWidth(),
                 )
             }
         }
@@ -203,14 +210,13 @@ fun Editor(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 34.dp, vertical = 16.dp),
-            contentAlignment = Alignment.TopCenter,
+                .padding(horizontal = 40.dp),
         ) {
             Box(
                 Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.84f)
-                    .widthIn(max = 820.dp),
+                    .widthIn(max = READING_WIDTH)
+                    .fillMaxWidth(),
             ) {
                 if (note.body.isEmpty() && !note.trashed) {
                     Column(Modifier.padding(top = 34.dp)) {
@@ -233,11 +239,41 @@ fun Editor(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 30.dp, bottom = 48.dp),
+                        .padding(top = 30.dp, bottom = 64.dp),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 )
             }
+        }
+    }
+}
+
+private val READING_WIDTH = 740.dp
+
+@Composable
+private fun SaveStatus(saving: Boolean) {
+    val dot by androidx.compose.animation.animateColorAsState(
+        if (saving) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+        label = "saveDot",
+    )
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+        modifier = Modifier.height(34.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(7.dp).background(dot, RoundedCornerShape(50)))
+            Spacer(Modifier.width(7.dp))
+            Text(
+                if (saving) "Saving" else "Saved",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }
