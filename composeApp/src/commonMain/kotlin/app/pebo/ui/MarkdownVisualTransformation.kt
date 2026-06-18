@@ -27,6 +27,7 @@ class MarkdownVisualTransformation(
     private val codeBg: Color,
     private val quote: Color,
     private val link: Color,
+    private val codeFont: FontFamily = FontFamily.Monospace,
 ) : VisualTransformation {
 
     override fun filter(text: AnnotatedString): TransformedText {
@@ -52,7 +53,7 @@ class MarkdownVisualTransformation(
 
         // Fenced code blocks: monospace + tinted background across the whole region.
         for (r in codeRanges) {
-            safeStyle(r.first, r.last + 1, SpanStyle(fontFamily = FontFamily.Monospace, color = codeText, background = codeBg))
+            safeStyle(r.first, r.last + 1, SpanStyle(fontFamily = codeFont, color = codeText, background = codeBg))
         }
 
         // Line-anchored constructs: headings and blockquotes.
@@ -89,7 +90,7 @@ class MarkdownVisualTransformation(
             dimMarker(m.range.last, m.range.last + 1)
         }
         applyInline(raw, inlineCodeRegex, ::inCode) { m ->
-            safeStyle(m.range.first, m.range.last + 1, SpanStyle(fontFamily = FontFamily.Monospace, color = codeText, background = codeBg))
+            safeStyle(m.range.first, m.range.last + 1, SpanStyle(fontFamily = codeFont, color = codeText, background = codeBg))
         }
         applyInline(raw, linkRegex, ::inCode) { m ->
             val labelRange = m.groups[1]?.range

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.pebo.ui.theme.LocalMonoFontFamily
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -328,7 +329,7 @@ private fun MermaidFallback(code: String, modifier: Modifier) {
         )
         Text(
             code,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = LocalMonoFontFamily.current,
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurface,
         )
