@@ -72,6 +72,7 @@ private data class RunFmt(
     val strike: Boolean = false,
     val mono: Boolean = false,
     val underline: Boolean = false,
+    val highlight: Boolean = false,
     val color: String? = null,
     val size: Int = BODY_SZ,
 )
@@ -88,8 +89,10 @@ private fun emitSpanRuns(spans: List<InlineSpan>, fmt: RunFmt, out: MutableList<
         is InlineSpan.Bold -> emitSpanRuns(s.children, fmt.copy(bold = true), out)
         is InlineSpan.Italic -> emitSpanRuns(s.children, fmt.copy(italic = true), out)
         is InlineSpan.Strike -> emitSpanRuns(s.children, fmt.copy(strike = true), out)
+        is InlineSpan.Highlight -> emitSpanRuns(s.children, fmt.copy(highlight = true), out)
         is InlineSpan.Code -> out += run(s.text, fmt.copy(mono = true))
         is InlineSpan.Link -> out += run(s.label, fmt.copy(underline = true, color = "2563EB"))
+        is InlineSpan.Image -> out += run(if (s.alt.isNotBlank()) "[Image: ${s.alt}]" else "[Image]", fmt.copy(italic = true, color = "57606A"))
         is InlineSpan.Tag -> out += run(s.text, fmt.copy(color = "0D9488", bold = true))
     }
 }
@@ -102,6 +105,7 @@ private fun run(text: String, fmt: RunFmt): String {
     if (fmt.italic) rpr.append("<w:i/>")
     if (fmt.strike) rpr.append("<w:strike/>")
     if (fmt.underline) rpr.append("<w:u w:val=\"single\"/>")
+    if (fmt.highlight) rpr.append("<w:highlight w:val=\"yellow\"/>")
     if (fmt.mono) rpr.append("<w:rFonts w:ascii=\"Consolas\" w:hAnsi=\"Consolas\" w:cs=\"Consolas\"/>")
     if (fmt.color != null) rpr.append("<w:color w:val=\"").append(fmt.color).append("\"/>")
     rpr.append("<w:sz w:val=\"").append(fmt.size).append("\"/><w:szCs w:val=\"").append(fmt.size).append("\"/>")

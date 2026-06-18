@@ -13,10 +13,32 @@ sealed interface InlineSpan {
     data class Bold(val children: List<InlineSpan>) : InlineSpan
     data class Italic(val children: List<InlineSpan>) : InlineSpan
     data class Strike(val children: List<InlineSpan>) : InlineSpan
+    /** `==marked==` text. */
+    data class Highlight(val children: List<InlineSpan>) : InlineSpan
     data class Code(val text: String) : InlineSpan
     data class Link(val label: String, val url: String) : InlineSpan
+    /** An inline image `![alt](url)`. */
+    data class Image(val alt: String, val url: String) : InlineSpan
     /** Includes the leading `#`, e.g. `#project/pebo`. */
     data class Tag(val text: String) : InlineSpan
+}
+
+/** Trailing punctuation trimmed off an auto-linked bare URL so `(see https://x.com).` links cleanly. */
+private fun urlEnd(raw: String, start: Int): Int {
+    val n = raw.length
+    var j = start
+    while (j < n && !raw[j].isWhitespace() && raw[j] !in "<>\"'`") j++
+    var end = j
+    // Pull trailing sentence punctuation back out of the link; balance a trailing ')'.
+    while (end > start && raw[end - 1] in ".,;:!?]}") end--
+    if (end > start && raw[end - 1] == ')' && raw.substring(start, end).count { it == '(' } < raw.substring(start, end).count { it == ')' }) end--
+    return end
+}
+
+private fun isBareUrlStart(raw: String, i: Int): Boolean {
+    if (!(raw.startsWith("http://", i) || raw.startsWith("https://", i))) return false
+    val prev = if (i == 0) ' ' else raw[i - 1]
+    return prev.isWhitespace() || prev == '(' || prev == '<'
 }
 
 /** Parses [raw] into inline spans, dropping the Markdown markers (matching the Preview renderer). */
@@ -43,8 +65,29 @@ fun parseInline(raw: String): List<InlineSpan> {
                     i = end + 1
                 } else { buf.append(ch); i++ }
             }
+            // Inline image: ![alt](url)
+            ch == '!' && i + 1 < n && raw[i + 1] == '[' -> {
+                val close = raw.indexOf(']', i + 2)
+                if (close > i && close + 1 < n && raw[close + 1] == '(') {
+                    val urlClose = raw.indexOf(')', close + 2)
+                    if (urlClose > close) {
+                        flush()
+                        out += InlineSpan.Image(raw.substring(i + 2, close), raw.substring(close + 2, urlClose).trim())
+                        i = urlClose + 1
+                    } else { buf.append(ch); i++ }
+                } else { buf.append(ch); i++ }
+            }
             ch == '*' && i + 1 < n && raw[i + 1] == '*' -> {
                 val end = raw.indexOf("**", i + 2)
+                if (end > i + 1) {
+                    flush()
+                    out += InlineSpan.Bold(parseInline(raw.substring(i + 2, end)))
+                    i = end + 2
+                } else { buf.append(ch); i++ }
+            }
+            // Bold via double underscore: __text__
+            ch == '_' && i + 1 < n && raw[i + 1] == '_' -> {
+                val end = raw.indexOf("__", i + 2)
                 if (end > i + 1) {
                     flush()
                     out += InlineSpan.Bold(parseInline(raw.substring(i + 2, end)))
@@ -56,6 +99,15 @@ fun parseInline(raw: String): List<InlineSpan> {
                 if (end > i + 1) {
                     flush()
                     out += InlineSpan.Strike(parseInline(raw.substring(i + 2, end)))
+                    i = end + 2
+                } else { buf.append(ch); i++ }
+            }
+            // Highlight: ==text==
+            ch == '=' && i + 1 < n && raw[i + 1] == '=' -> {
+                val end = raw.indexOf("==", i + 2)
+                if (end > i + 1) {
+                    flush()
+                    out += InlineSpan.Highlight(parseInline(raw.substring(i + 2, end)))
                     i = end + 2
                 } else { buf.append(ch); i++ }
             }
@@ -76,6 +128,27 @@ fun parseInline(raw: String): List<InlineSpan> {
                         out += InlineSpan.Link(raw.substring(i + 1, close), raw.substring(close + 2, urlEnd))
                         i = urlEnd + 1
                     } else { buf.append(ch); i++ }
+                } else { buf.append(ch); i++ }
+            }
+            // Angle-bracket autolink: <https://example.com>
+            ch == '<' -> {
+                val end = raw.indexOf('>', i + 1)
+                val inner = if (end > i) raw.substring(i + 1, end) else ""
+                if (end > i && (inner.contains("://") || inner.startsWith("www.") || inner.startsWith("mailto:"))) {
+                    flush()
+                    val url = if (inner.startsWith("www.")) "https://$inner" else inner
+                    out += InlineSpan.Link(inner, url)
+                    i = end + 1
+                } else { buf.append(ch); i++ }
+            }
+            // Bare URL autolink: https://example.com
+            isBareUrlStart(raw, i) -> {
+                val end = urlEnd(raw, i)
+                if (end > i) {
+                    flush()
+                    val url = raw.substring(i, end)
+                    out += InlineSpan.Link(url, url)
+                    i = end
                 } else { buf.append(ch); i++ }
             }
             ch == '#' && (i == 0 || raw[i - 1].isWhitespace()) -> {
@@ -100,7 +173,9 @@ fun InlineSpan.plainText(): String = when (this) {
     is InlineSpan.Bold -> children.joinToString("") { it.plainText() }
     is InlineSpan.Italic -> children.joinToString("") { it.plainText() }
     is InlineSpan.Strike -> children.joinToString("") { it.plainText() }
+    is InlineSpan.Highlight -> children.joinToString("") { it.plainText() }
     is InlineSpan.Code -> text
     is InlineSpan.Link -> label
+    is InlineSpan.Image -> alt
     is InlineSpan.Tag -> text
 }

@@ -36,6 +36,19 @@ class MarkdownDocxTest {
     }
 
     @Test
+    fun highlight_maps_to_word_highlight() {
+        val xml = markdownToWordDocumentXml("==note==")
+        assertContains(xml, "<w:highlight w:val=\"yellow\"/>")
+        assertContains(xml, "note")
+    }
+
+    @Test
+    fun inline_image_renders_alt_placeholder() {
+        val xml = markdownToWordDocumentXml("![a cat](u.png)")
+        assertContains(xml, "[Image: a cat]")
+    }
+
+    @Test
     fun xml_special_chars_are_escaped() {
         val xml = markdownToWordDocumentXml("a < b & c")
         assertContains(xml, "a &lt; b &amp; c")

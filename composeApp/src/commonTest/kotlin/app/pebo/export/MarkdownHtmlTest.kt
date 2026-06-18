@@ -69,4 +69,29 @@ class MarkdownHtmlTest {
         assertContains(out, "<blockquote>quoted</blockquote>")
         assertContains(out, "<hr>")
     }
+
+    @Test
+    fun highlight_becomes_mark() {
+        val out = html("This is ==important== text")
+        assertContains(out, "<mark>important</mark>")
+    }
+
+    @Test
+    fun inline_image_becomes_img_tag() {
+        val out = html("Look ![a cat](https://x.test/c.png) here")
+        assertContains(out, "<img class=\"inline-img\" src=\"https://x.test/c.png\" alt=\"a cat\">")
+    }
+
+    @Test
+    fun double_underscore_and_autolinks_render() {
+        val out = html("__strong__ and https://pebo.app and <https://x.test>")
+        assertContains(out, "<strong>strong</strong>")
+        assertContains(out, "<a href=\"https://pebo.app\">https://pebo.app</a>")
+        assertContains(out, "<a href=\"https://x.test\">https://x.test</a>")
+    }
+
+    @Test
+    fun mark_styles_are_present_in_css() {
+        assertContains(html("x"), "mark {")
+    }
 }
