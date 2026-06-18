@@ -62,6 +62,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
@@ -335,6 +336,15 @@ private fun NoteRow(
                                 color = scheme.onSurfaceVariant,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
+                            )
+                        } else if (note.tags.isEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Empty note",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                fontStyle = FontStyle.Italic,
+                                maxLines = 1,
                             )
                         }
                         if (note.tags.isNotEmpty()) {
