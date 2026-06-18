@@ -16,12 +16,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.FormatListNumbered
+import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.FormatStrikethrough
+import androidx.compose.material.icons.filled.HorizontalRule
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,40 +35,39 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.mohamedrejeb.richeditor.model.RichTextState
 
 /**
- * Heading styles replicated to match the rich-editor library's internal H1/H2 spans exactly
- * (`SpanStyle` is a data class, so equal field values compare equal and the Markdown encoder emits
- * `#`/`##`). The library's own constants are `internal`, so we mirror their values here.
- */
-private val H1Style = SpanStyle(fontSize = 2.em, fontWeight = FontWeight.Bold)
-private val H2Style = SpanStyle(fontSize = 1.5.em, fontWeight = FontWeight.Bold)
-
-/**
- * Bear-style formatting bar. Buttons toggle live markdown styling on [state] and light up when the
- * caret sits inside matching formatting.
+ * Bear-style formatting bar that edits the raw Markdown source directly via [MarkdownEditing], so
+ * every element — including fenced code, tables, task lists and images — is inserted as real, fully
+ * round-trippable Markdown. Heading/list/quote buttons light up when the caret is already inside one.
  */
 @Composable
 fun EditorToolbar(
-    state: RichTextState,
+    value: TextFieldValue,
+    onApply: (TextFieldValue) -> Unit,
     onLink: () -> Unit,
+    onImage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val span = state.currentSpanStyle
-    val isBold = (span.fontWeight?.weight ?: 400) >= 600
-    val isItalic = span.fontStyle == FontStyle.Italic
-    val isStrike = span.textDecoration?.contains(TextDecoration.LineThrough) == true
-    val isH1 = span.fontSize == H1Style.fontSize
-    val isH2 = span.fontSize == H2Style.fontSize
+    val text = value.text
+    val caret = value.selection.start.coerceIn(0, text.length)
+    val lineStart = if (caret == 0) 0 else text.lastIndexOf('\n', caret - 1) + 1
+    val lineEnd = text.indexOf('\n', caret).let { if (it < 0) text.length else it }
+    val line = if (lineStart <= lineEnd) text.substring(lineStart, lineEnd) else ""
+
+    val isH1 = line.startsWith("# ")
+    val isH2 = line.startsWith("## ")
+    val isH3 = line.startsWith("### ")
+    val isQuote = line.trimStart().startsWith(">")
+    val isTask = line.startsWith("- [")
+    val isBullet = line.startsWith("- ") && !isTask
+    val isNumbered = Regex("^\\d+\\.\\s").containsMatchIn(line)
 
     Row(
         modifier = modifier
@@ -72,28 +77,40 @@ fun EditorToolbar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        TextToolButton("H1", active = isH1) { state.toggleSpanStyle(H1Style) }
-        TextToolButton("H2", active = isH2) { state.toggleSpanStyle(H2Style) }
+        TextToolButton("H1", active = isH1) { onApply(MarkdownEditing.toggleHeading(value, 1)) }
+        TextToolButton("H2", active = isH2) { onApply(MarkdownEditing.toggleHeading(value, 2)) }
+        TextToolButton("H3", active = isH3) { onApply(MarkdownEditing.toggleHeading(value, 3)) }
         ToolDivider()
-        IconToolButton(Icons.Filled.FormatBold, "Bold", isBold) {
-            state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
-        }
-        IconToolButton(Icons.Filled.FormatItalic, "Italic", isItalic) {
-            state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
-        }
-        IconToolButton(Icons.Filled.FormatStrikethrough, "Strikethrough", isStrike) {
-            state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
-        }
-        IconToolButton(Icons.Filled.Code, "Code", state.isCodeSpan) { state.toggleCodeSpan() }
+        IconToolButton(Icons.Filled.FormatBold, "Bold") { onApply(MarkdownEditing.wrap(value, "**")) }
+        IconToolButton(Icons.Filled.FormatItalic, "Italic") { onApply(MarkdownEditing.wrap(value, "*")) }
+        IconToolButton(Icons.Filled.FormatStrikethrough, "Strikethrough") { onApply(MarkdownEditing.wrap(value, "~~")) }
+        IconToolButton(Icons.Filled.Code, "Inline code") { onApply(MarkdownEditing.wrap(value, "`")) }
         ToolDivider()
-        IconToolButton(Icons.Filled.FormatListBulleted, "Bulleted list", state.isUnorderedList) {
-            state.toggleUnorderedList()
+        IconToolButton(Icons.Filled.FormatListBulleted, "Bulleted list", isBullet) {
+            onApply(MarkdownEditing.toggleLinePrefix(value, "- "))
         }
-        IconToolButton(Icons.Filled.FormatListNumbered, "Numbered list", state.isOrderedList) {
-            state.toggleOrderedList()
+        IconToolButton(Icons.Filled.FormatListNumbered, "Numbered list", isNumbered) {
+            onApply(MarkdownEditing.toggleOrdered(value))
+        }
+        IconToolButton(Icons.Outlined.CheckBox, "Task list", isTask) {
+            onApply(MarkdownEditing.toggleLinePrefix(value, "- [ ] "))
+        }
+        IconToolButton(Icons.Filled.FormatQuote, "Quote", isQuote) {
+            onApply(MarkdownEditing.toggleLinePrefix(value, "> "))
         }
         ToolDivider()
-        IconToolButton(Icons.Filled.Link, "Link", state.isLink, onClick = onLink)
+        IconToolButton(Icons.Filled.DataObject, "Code block") {
+            onApply(MarkdownEditing.insertBlock(value, MarkdownEditing.CODE_BLOCK, caretOffsetInBlock = 4))
+        }
+        IconToolButton(Icons.Filled.TableChart, "Table") {
+            onApply(MarkdownEditing.insertBlock(value, MarkdownEditing.TABLE_SKELETON))
+        }
+        IconToolButton(Icons.Filled.HorizontalRule, "Divider") {
+            onApply(MarkdownEditing.insertBlock(value, MarkdownEditing.HORIZONTAL_RULE))
+        }
+        ToolDivider()
+        IconToolButton(Icons.Filled.Link, "Link", onClick = onLink)
+        IconToolButton(Icons.Filled.Image, "Image", onClick = onImage)
     }
 }
 
@@ -101,10 +118,10 @@ fun EditorToolbar(
 private fun IconToolButton(
     icon: ImageVector,
     description: String,
-    active: Boolean,
+    active: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val bg = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else androidx.compose.ui.graphics.Color.Transparent
+    val bg = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = Modifier
@@ -120,7 +137,7 @@ private fun IconToolButton(
 
 @Composable
 private fun TextToolButton(label: String, active: Boolean, onClick: () -> Unit) {
-    val bg = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else androidx.compose.ui.graphics.Color.Transparent
+    val bg = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = Modifier

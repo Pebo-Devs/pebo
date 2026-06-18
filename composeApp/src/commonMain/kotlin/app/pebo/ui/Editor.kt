@@ -1,5 +1,6 @@
 package app.pebo.ui
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,24 +39,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.mohamedrejeb.richeditor.model.RichTextState
-import com.mohamedrejeb.richeditor.model.rememberRichTextState
-import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
-import kotlinx.coroutines.flow.drop
 
 @Composable
 fun Editor(
@@ -73,19 +68,33 @@ fun Editor(
             return@Column
         }
 
-        val state = rememberRichTextState()
-        val tagColor = MaterialTheme.colorScheme.primary
+        // The editing buffer holds the raw Markdown source; it is reset only when the note changes.
+        var value by remember(note.id) {
+            mutableStateOf(TextFieldValue(note.body, TextRange(note.body.length)))
+        }
         var showTagDialog by remember(note.id) { mutableStateOf(false) }
         var showLinkDialog by remember(note.id) { mutableStateOf(false) }
-        LaunchedEffect(note.id) {
-            state.setMarkdown(note.body)
-            state.restyleHashtags(tagColor)
-            snapshotFlow { state.annotatedString.text }
-                .drop(1)
-                .collect {
-                    vm.updateBody(note.id, state.toMarkdown())
-                    state.restyleHashtags(tagColor)
-                }
+        var showImageDialog by remember(note.id) { mutableStateOf(false) }
+
+        fun applyEdit(newValue: TextFieldValue) {
+            value = newValue
+            vm.updateBody(note.id, newValue.text)
+        }
+
+        val tagColor = MaterialTheme.colorScheme.primary
+        val markerColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        val codeText = MaterialTheme.colorScheme.onSurface
+        val codeBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        val quoteColor = MaterialTheme.colorScheme.onSurfaceVariant
+        val transformation = remember(tagColor, markerColor, codeText, codeBg, quoteColor) {
+            MarkdownVisualTransformation(
+                tag = tagColor,
+                marker = markerColor,
+                codeText = codeText,
+                codeBg = codeBg,
+                quote = quoteColor,
+                link = tagColor,
+            )
         }
 
         if (showTagDialog) {
@@ -93,8 +102,7 @@ fun Editor(
                 onDismiss = { showTagDialog = false },
                 onAdd = { rawTag ->
                     vm.addTag(note.id, rawTag)?.let { updatedBody ->
-                        state.setMarkdown(updatedBody)
-                        state.restyleHashtags(tagColor)
+                        value = TextFieldValue(updatedBody, TextRange(updatedBody.length))
                     }
                     showTagDialog = false
                 },
@@ -105,8 +113,18 @@ fun Editor(
             AddLinkDialog(
                 onDismiss = { showLinkDialog = false },
                 onAdd = { url ->
-                    state.addLinkToSelection(url)
+                    applyEdit(MarkdownEditing.insertLink(value, url))
                     showLinkDialog = false
+                },
+            )
+        }
+
+        if (showImageDialog) {
+            AddImageDialog(
+                onDismiss = { showImageDialog = false },
+                onAdd = { url, alt ->
+                    applyEdit(MarkdownEditing.insertImage(value, url, alt))
+                    showImageDialog = false
                 },
             )
         }
@@ -198,8 +216,10 @@ fun Editor(
                     .padding(horizontal = 40.dp, vertical = 10.dp),
             ) {
                 EditorToolbar(
-                    state = state,
+                    value = value,
+                    onApply = ::applyEdit,
                     onLink = { showLinkDialog = true },
+                    onImage = { showImageDialog = true },
                     modifier = Modifier
                         .widthIn(max = READING_WIDTH)
                         .fillMaxWidth(),
@@ -218,23 +238,9 @@ fun Editor(
                     .widthIn(max = READING_WIDTH)
                     .fillMaxWidth(),
             ) {
-                if (note.body.isEmpty() && !note.trashed) {
-                    Column(Modifier.padding(top = 34.dp)) {
-                        Text(
-                            "Untitled",
-                            style = MaterialTheme.typography.displaySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            "Start writing. Use #tags anywhere.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
-                        )
-                    }
-                }
-                BasicRichTextEditor(
-                    state = state,
+                BasicTextField(
+                    value = value,
+                    onValueChange = { applyEdit(it) },
                     readOnly = note.trashed,
                     modifier = Modifier
                         .fillMaxSize()
@@ -242,6 +248,25 @@ fun Editor(
                         .padding(top = 30.dp, bottom = 64.dp),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    visualTransformation = transformation,
+                    decorationBox = { inner ->
+                        if (value.text.isEmpty() && !note.trashed) {
+                            Column {
+                                Text(
+                                    "Untitled",
+                                    style = MaterialTheme.typography.displaySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    "Start writing. Use #tags, code blocks, tables — anything Markdown.",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
+                                )
+                            }
+                        }
+                        inner()
+                    },
                 )
             }
         }
@@ -252,7 +277,7 @@ private val READING_WIDTH = 740.dp
 
 @Composable
 private fun SaveStatus(saving: Boolean) {
-    val dot by androidx.compose.animation.animateColorAsState(
+    val dot by animateColorAsState(
         if (saving) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
         label = "saveDot",
     )
@@ -323,7 +348,7 @@ private fun AddLinkDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Select text in the note first, then paste a URL. The selected text becomes the link.",
+                    "Select text first to use it as the link label, then paste a URL.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -350,24 +375,47 @@ private fun AddLinkDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
     )
 }
 
-private val hashtagRegex = Regex("""(?<=^|\s)#[A-Za-z0-9_][A-Za-z0-9_/-]*""")
-
-/**
- * Colours every `#tag` occurrence so tags read like pills inside the editor. The span is colour-only:
- * colour has no Markdown representation, so [RichTextState.toMarkdown] drops it and the saved file
- * keeps clean `#tag` text. Touches spans only (never the text), so it never retriggers the text
- * observer that drives autosave.
- */
-private fun RichTextState.restyleHashtags(color: Color) {
-    val text = annotatedString.text
-    if (text.isEmpty()) return
-    val style = SpanStyle(color = color)
-    val saved = selection
-    removeSpanStyle(style, TextRange(0, text.length))
-    for (match in hashtagRegex.findAll(text)) {
-        addSpanStyle(style, TextRange(match.range.first, match.range.last + 1))
-    }
-    selection = saved
+@Composable
+private fun AddImageDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
+    var url by remember { mutableStateOf("") }
+    var alt by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Insert image") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Inserts ![alt](url). Use a web URL or a path to a local image file.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    singleLine = true,
+                    label = { Text("Image URL or path") },
+                    placeholder = { Text("https://") },
+                )
+                OutlinedTextField(
+                    value = alt,
+                    onValueChange = { alt = it },
+                    singleLine = true,
+                    label = { Text("Alt text (optional)") },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = url.isNotBlank(),
+                onClick = { onAdd(url.trim(), alt.trim().ifBlank { "image" }) },
+            ) {
+                Text("Insert")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable
