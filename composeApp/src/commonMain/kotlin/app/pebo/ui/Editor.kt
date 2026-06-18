@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.IosShare
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Tag
@@ -39,6 +40,7 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -108,6 +110,7 @@ fun Editor(
         var showImageDialog by remember(note.id) { mutableStateOf(false) }
         var mode by remember(note.id) { mutableStateOf(EditorMode.Write) }
         var showExportMenu by remember(note.id) { mutableStateOf(false) }
+        var showMoreMenu by remember(note.id) { mutableStateOf(false) }
         var exportStatus by remember(note.id) { mutableStateOf<String?>(null) }
         val exportScope = rememberCoroutineScope()
 
@@ -222,52 +225,42 @@ fun Editor(
             )
         }
 
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 14.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxWidth()
-                    .padding(end = 250.dp),
-            ) {
-                if (onBack != null) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
+                Spacer(Modifier.width(2.dp))
+            }
 
-                Column(Modifier.weight(1f).padding(start = if (onBack == null) 0.dp else 6.dp)) {
-                    Text(
-                        note.title.ifBlank { "Untitled" },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 5.dp),
-                    ) {
-                        SaveStatus(saving = vm.saving)
-                        InfoPill("Markdown")
-                        exportStatus?.let { InfoPill(it) }
-                        if (!note.trashed) {
-                            PillAction("Add tag", onClick = { showTagDialog = true }, icon = Icons.Filled.Tag)
-                            PillAction("Child note", onClick = { vm.createChildNote(note.id) }, icon = Icons.Filled.Add)
-                        }
-                    }
+            Column(Modifier.weight(1f).padding(end = 16.dp)) {
+                Text(
+                    note.title.ifBlank { "Untitled" },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 6.dp),
+                ) {
+                    SaveStatus(saving = vm.saving)
+                    InfoPill("Markdown")
+                    exportStatus?.let { InfoPill(it) }
                 }
             }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 IconButton(onClick = { outlineOpen = !outlineOpen }) {
                     Icon(
@@ -300,28 +293,83 @@ fun Editor(
                         }
                     }
                 }
+                HeaderDivider()
                 WritePreviewToggle(
                     mode = mode,
                     onChange = { mode = it },
-                    modifier = Modifier.padding(end = 8.dp),
                 )
-                if (note.trashed) {
-                    IconButton(onClick = { vm.restore(note.id) }) {
-                        Icon(Icons.Filled.RestoreFromTrash, contentDescription = "Restore")
-                    }
-                    IconButton(onClick = { vm.purge(note.id) }) {
-                        Icon(Icons.Filled.DeleteForever, contentDescription = "Delete forever")
-                    }
-                } else {
-                    IconButton(onClick = { vm.togglePin(note.id) }) {
+                HeaderDivider()
+                Box {
+                    IconButton(onClick = { showMoreMenu = true }) {
                         Icon(
-                            if (note.pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                            contentDescription = "Pin",
-                            tint = if (note.pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            Icons.Filled.MoreVert,
+                            contentDescription = "More actions",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    IconButton(onClick = { vm.trash(note.id) }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Move to trash")
+                    DropdownMenu(
+                        expanded = showMoreMenu,
+                        onDismissRequest = { showMoreMenu = false },
+                    ) {
+                        if (note.trashed) {
+                            DropdownMenuItem(
+                                text = { Text("Restore") },
+                                leadingIcon = { Icon(Icons.Filled.RestoreFromTrash, contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    vm.restore(note.id)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete forever") },
+                                leadingIcon = { Icon(Icons.Filled.DeleteForever, contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    vm.purge(note.id)
+                                },
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text("Add tag") },
+                                leadingIcon = { Icon(Icons.Filled.Tag, contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    showTagDialog = true
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add child note") },
+                                leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    vm.createChildNote(note.id)
+                                },
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text(if (note.pinned) "Unpin" else "Pin") },
+                                leadingIcon = {
+                                    Icon(
+                                        if (note.pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                                        contentDescription = null,
+                                        tint = if (note.pinned) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    vm.togglePin(note.id)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move to trash") },
+                                leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    vm.trash(note.id)
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -508,6 +556,17 @@ fun Editor(
 private val READING_WIDTH = 740.dp
 
 internal enum class EditorMode { Write, Preview }
+
+@Composable
+private fun HeaderDivider() {
+    Box(
+        Modifier
+            .padding(horizontal = 4.dp)
+            .width(1.dp)
+            .height(20.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+    )
+}
 
 @Composable
 private fun WritePreviewToggle(
