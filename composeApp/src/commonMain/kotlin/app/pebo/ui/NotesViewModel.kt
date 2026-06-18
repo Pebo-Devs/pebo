@@ -82,11 +82,19 @@ class NotesViewModel(
     var notesDir by mutableStateOf(initialNotesDir)
         private set
 
+    /**
+     * Per-tag "pop" styling (icon, accent color, pinned), keyed by full tag name. Only non-default
+     * entries are kept. Persisted one key per tag (`tagstyle.<name>`) so it survives relaunches.
+     */
+    var tagStyles by mutableStateOf<Map<String, TagStyle>>(emptyMap())
+        private set
+
     init {
         prefs.getString(KEY_PALETTE)?.let { paletteId = it }
         prefs.getString(KEY_MODE)?.let { stored ->
             runCatching { ThemeMode.valueOf(stored) }.getOrNull()?.let { themeMode = it }
         }
+        loadTagStyles()
         refresh()
     }
 
@@ -159,6 +167,20 @@ class NotesViewModel(
             childrenOf[""].orEmpty().forEach { visit(it, emptyList()) }
             return rows
         }
+
+    /**
+     * Pinned tags lifted into their own flat section at the top of the sidebar. Each row shows the
+     * full tag name (so `project/pebo` reads unambiguously out of the tree) and keeps its rolled-up
+     * count; rendered without rails since there is no hierarchy here.
+     */
+    val pinnedTagRows: List<TagRow>
+        get() = tagRows
+            .filter { tagStyles[it.name]?.pinned == true }
+            .sortedBy { it.name.lowercase() }
+            .map { it.copy(leaf = it.name, depth = 0, hasChildren = false, guides = emptyList()) }
+
+    /** The stored style for [name], or a default (unstyled) one. */
+    fun tagStyle(name: String): TagStyle = tagStyles[name] ?: TagStyle()
 
     val untaggedCount: Int get() = active.count { it.tags.isEmpty() }
 
@@ -320,6 +342,39 @@ class NotesViewModel(
         prefs.putString(KEY_MODE, mode.name)
     }
 
+    private fun loadTagStyles() {
+        val loaded = LinkedHashMap<String, TagStyle>()
+        for (key in prefs.keys()) {
+            if (!key.startsWith(TAG_STYLE_PREFIX)) continue
+            val name = key.removePrefix(TAG_STYLE_PREFIX)
+            val style = prefs.getString(key)?.let { decodeTagStyle(it) } ?: continue
+            if (!style.isDefault) loaded[name] = style
+        }
+        tagStyles = loaded
+    }
+
+    private fun updateTagStyle(name: String, transform: (TagStyle) -> TagStyle) {
+        val next = transform(tagStyles[name] ?: TagStyle())
+        val map = LinkedHashMap(tagStyles)
+        val key = TAG_STYLE_PREFIX + name
+        if (next.isDefault) {
+            map.remove(name)
+            prefs.remove(key)
+        } else {
+            map[name] = next
+            prefs.putString(key, encodeTagStyle(next))
+        }
+        tagStyles = map
+    }
+
+    fun setTagIconId(name: String, iconId: String?) = updateTagStyle(name) { it.copy(iconId = iconId) }
+
+    fun setTagColor(name: String, colorArgb: Long?) = updateTagStyle(name) { it.copy(colorArgb = colorArgb) }
+
+    fun toggleTagPinned(name: String) = updateTagStyle(name) { it.copy(pinned = !it.pinned) }
+
+    fun resetTagStyle(name: String) = updateTagStyle(name) { TagStyle() }
+
     private fun buildTreeRows(notes: List<Note>): List<NoteTreeRow> {
         val ids = notes.mapTo(HashSet()) { it.id }
         val childrenByParent = notes
@@ -371,5 +426,6 @@ class NotesViewModel(
     private companion object {
         const val KEY_PALETTE = "theme.palette"
         const val KEY_MODE = "theme.mode"
+        const val TAG_STYLE_PREFIX = "tagstyle."
     }
 }
