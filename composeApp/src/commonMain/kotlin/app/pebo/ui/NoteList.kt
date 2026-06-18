@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PushPin
@@ -31,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -181,9 +183,10 @@ private fun noteCountLabel(count: Int, trash: Boolean): String =
 @Composable
 private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
     val note = row.note
+    val railColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f)
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(17.dp),
+        shape = RoundedCornerShape(16.dp),
         color = if (selected) MaterialTheme.colorScheme.background.copy(alpha = 0.96f) else Color.Transparent,
         border = if (selected) {
             BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.74f))
@@ -192,41 +195,32 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
         },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 0.dp, vertical = 4.dp),
+            .padding(vertical = 3.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
             if (row.depth > 0) {
-                Spacer(Modifier.width((row.depth * 18).dp))
-                Box(
-                    Modifier
-                        .width(10.dp)
-                        .height(24.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.74f), RoundedCornerShape(50)),
+                TreeRail(
+                    guides = row.guides,
+                    color = railColor,
+                    modifier = Modifier.fillMaxHeight(),
                 )
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
             }
             if (selected) {
                 Box(
                     Modifier
+                        .padding(top = 2.dp)
                         .width(3.dp)
-                        .height(46.dp)
+                        .height(18.dp)
                         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)),
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
             }
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (row.hasChildren) {
-                        Text(
-                            "▾",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(end = 6.dp),
-                        )
-                    }
                     if (note.pinned) {
                         Icon(
                             Icons.Filled.PushPin,
@@ -243,6 +237,10 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (row.hasChildren) {
+                        Spacer(Modifier.width(8.dp))
+                        SubnoteBadge(row.childCount)
+                    }
                     Spacer(Modifier.width(8.dp))
                     Text(
                         DateLabel.short(note.modified),
@@ -269,5 +267,32 @@ private fun NoteRow(row: NoteTreeRow, selected: Boolean, onClick: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Draws the file-tree connector rails for a nested note. See [TreeRail] in Components.
+ */
+@Composable
+private fun SubnoteBadge(count: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.13f))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    ) {
+        Icon(
+            Icons.Filled.AccountTree,
+            contentDescription = "Subnotes",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(11.dp),
+        )
+        Spacer(Modifier.width(3.dp))
+        Text(
+            count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }

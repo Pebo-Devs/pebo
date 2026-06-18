@@ -43,9 +43,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import kotlinx.coroutines.flow.drop
@@ -68,20 +72,39 @@ fun Editor(
         }
 
         val state = rememberRichTextState()
+        val tagColor = MaterialTheme.colorScheme.primary
         var showTagDialog by remember(note.id) { mutableStateOf(false) }
+        var showLinkDialog by remember(note.id) { mutableStateOf(false) }
         LaunchedEffect(note.id) {
             state.setMarkdown(note.body)
-            snapshotFlow { state.annotatedString }
+            state.restyleHashtags(tagColor)
+            snapshotFlow { state.annotatedString.text }
                 .drop(1)
-                .collect { vm.updateBody(note.id, state.toMarkdown()) }
+                .collect {
+                    vm.updateBody(note.id, state.toMarkdown())
+                    state.restyleHashtags(tagColor)
+                }
         }
 
         if (showTagDialog) {
             AddTagDialog(
                 onDismiss = { showTagDialog = false },
                 onAdd = { rawTag ->
-                    vm.addTag(note.id, rawTag)?.let { updatedBody -> state.setMarkdown(updatedBody) }
+                    vm.addTag(note.id, rawTag)?.let { updatedBody ->
+                        state.setMarkdown(updatedBody)
+                        state.restyleHashtags(tagColor)
+                    }
                     showTagDialog = false
+                },
+            )
+        }
+
+        if (showLinkDialog) {
+            AddLinkDialog(
+                onDismiss = { showLinkDialog = false },
+                onAdd = { url ->
+                    state.addLinkToSelection(url)
+                    showLinkDialog = false
                 },
             )
         }
@@ -157,6 +180,23 @@ fun Editor(
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { vm.restore(note.id) }) { Text("Restore") }
+            }
+        }
+
+        if (!note.trashed) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 34.dp, vertical = 4.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                EditorToolbar(
+                    state = state,
+                    onLink = { showLinkDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth(0.84f)
+                        .widthIn(max = 820.dp),
+                )
             }
         }
 
@@ -236,6 +276,62 @@ private fun AddTagDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@Composable
+private fun AddLinkDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
+    var url by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add link") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Select text in the note first, then paste a URL. The selected text becomes the link.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    singleLine = true,
+                    label = { Text("URL") },
+                    placeholder = { Text("https://") },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = url.isNotBlank(),
+                onClick = { onAdd(url.trim()) },
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+private val hashtagRegex = Regex("""(?<=^|\s)#[A-Za-z0-9_][A-Za-z0-9_/-]*""")
+
+/**
+ * Colours every `#tag` occurrence so tags read like pills inside the editor. The span is colour-only:
+ * colour has no Markdown representation, so [RichTextState.toMarkdown] drops it and the saved file
+ * keeps clean `#tag` text. Touches spans only (never the text), so it never retriggers the text
+ * observer that drives autosave.
+ */
+private fun RichTextState.restyleHashtags(color: Color) {
+    val text = annotatedString.text
+    if (text.isEmpty()) return
+    val style = SpanStyle(color = color)
+    val saved = selection
+    removeSpanStyle(style, TextRange(0, text.length))
+    for (match in hashtagRegex.findAll(text)) {
+        addSpanStyle(style, TextRange(match.range.first, match.range.last + 1))
+    }
+    selection = saved
 }
 
 @Composable

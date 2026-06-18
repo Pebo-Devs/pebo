@@ -32,16 +32,26 @@ internal fun deriveTitle(body: String): String {
 }
 
 internal fun deriveSnippet(body: String): String {
-    val lines = body.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.iterator()
-    if (!lines.hasNext()) return ""
-    lines.next() // skip the title line
+    val lines = body.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
+    if (lines.isEmpty()) return ""
     val sb = StringBuilder()
-    while (lines.hasNext() && sb.length < 120) {
-        val l = lines.next().trimStart('#', '>', '-', '*', ' ').trim()
-        if (l.isNotEmpty()) {
-            if (sb.isNotEmpty()) sb.append("  ")
-            sb.append(l)
+    var skippedTitle = false
+    for (raw in lines) {
+        if (!skippedTitle) {
+            skippedTitle = true
+            continue // skip the title line
         }
+        if (isTagOnlyLine(raw)) continue // tags render as chips, keep them out of the preview text
+        val l = raw.trimStart('#', '>', '-', '*', ' ').trim()
+        if (l.isEmpty()) continue
+        if (sb.isNotEmpty()) sb.append("  ")
+        sb.append(l)
+        if (sb.length >= 120) break
     }
     return sb.toString().take(120)
+}
+
+private fun isTagOnlyLine(line: String): Boolean {
+    val tokens = line.split(Regex("\\s+")).filter { it.isNotEmpty() }
+    return tokens.isNotEmpty() && tokens.all { it.length > 1 && it.startsWith("#") }
 }

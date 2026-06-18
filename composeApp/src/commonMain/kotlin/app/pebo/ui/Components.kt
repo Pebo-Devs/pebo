@@ -1,6 +1,7 @@
 package app.pebo.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,7 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -252,7 +255,7 @@ fun AccentBar(width: Dp, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CountPill(count: Int) {
+fun CountPill(count: Int) {
     Surface(
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
@@ -263,5 +266,46 @@ private fun CountPill(count: Int) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
         )
+    }
+}
+
+/**
+ * Shared file-tree connector rails used by both the note list and the tag tree. One 22dp column per
+ * ancestor; `guides[i] == true` draws a continuing `│` rail at that column. The final column is this
+ * row's own connector: `true` → a `├` tee (more siblings follow), `false` → a `└` elbow (last child).
+ * [connectorY] is where the horizontal arm meets the label — near the top for tall note rows, at the
+ * vertical centre for fixed-height sidebar rows.
+ */
+@Composable
+fun TreeRail(
+    guides: List<Boolean>,
+    color: Color,
+    modifier: Modifier = Modifier,
+    connectorY: Dp = 11.dp,
+) {
+    Canvas(
+        modifier = modifier
+            .width((22 * guides.size).dp)
+            .fillMaxHeight(),
+    ) {
+        if (guides.isEmpty()) return@Canvas
+        val colPx = 22.dp.toPx()
+        val stroke = 1.5.dp.toPx()
+        val armY = connectorY.toPx().coerceAtMost(size.height)
+        val last = guides.lastIndex
+        guides.forEachIndexed { i, continues ->
+            val centerX = i * colPx + colPx / 2f
+            if (i < last) {
+                if (continues) {
+                    drawLine(color, Offset(centerX, 0f), Offset(centerX, size.height), stroke, StrokeCap.Round)
+                }
+            } else {
+                drawLine(color, Offset(centerX, 0f), Offset(centerX, armY), stroke, StrokeCap.Round)
+                if (continues) {
+                    drawLine(color, Offset(centerX, armY), Offset(centerX, size.height), stroke, StrokeCap.Round)
+                }
+                drawLine(color, Offset(centerX, armY), Offset(i * colPx + colPx, armY), stroke, StrokeCap.Round)
+            }
+        }
     }
 }
