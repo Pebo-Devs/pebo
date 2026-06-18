@@ -3,7 +3,7 @@ package app.pebo.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,9 +26,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -45,8 +47,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -75,6 +81,7 @@ fun Editor(
         var showTagDialog by remember(note.id) { mutableStateOf(false) }
         var showLinkDialog by remember(note.id) { mutableStateOf(false) }
         var showImageDialog by remember(note.id) { mutableStateOf(false) }
+        var mode by remember(note.id) { mutableStateOf(EditorMode.Write) }
 
         fun applyEdit(newValue: TextFieldValue) {
             value = newValue
@@ -129,57 +136,75 @@ fun Editor(
             )
         }
 
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxWidth()
+                    .padding(end = 250.dp),
+            ) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 }
-            }
 
-            Column(Modifier.weight(1f).padding(start = if (onBack == null) 0.dp else 6.dp)) {
-                Text(
-                    note.title.ifBlank { "Untitled" },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(top = 5.dp)
-                        .horizontalScroll(rememberScrollState()),
-                ) {
-                    SaveStatus(saving = vm.saving)
-                    InfoPill("Markdown")
-                    if (!note.trashed) {
-                        PillAction("Add tag", onClick = { showTagDialog = true }, icon = Icons.Filled.Tag)
-                        PillAction("Child note", onClick = { vm.createChildNote(note.id) }, icon = Icons.Filled.Add)
+                Column(Modifier.weight(1f).padding(start = if (onBack == null) 0.dp else 6.dp)) {
+                    Text(
+                        note.title.ifBlank { "Untitled" },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 5.dp),
+                    ) {
+                        SaveStatus(saving = vm.saving)
+                        InfoPill("Markdown")
+                        if (!note.trashed) {
+                            PillAction("Add tag", onClick = { showTagDialog = true }, icon = Icons.Filled.Tag)
+                            PillAction("Child note", onClick = { vm.createChildNote(note.id) }, icon = Icons.Filled.Add)
+                        }
                     }
                 }
             }
-            if (note.trashed) {
-                IconButton(onClick = { vm.restore(note.id) }) {
-                    Icon(Icons.Filled.RestoreFromTrash, contentDescription = "Restore")
-                }
-                IconButton(onClick = { vm.purge(note.id) }) {
-                    Icon(Icons.Filled.DeleteForever, contentDescription = "Delete forever")
-                }
-            } else {
-                IconButton(onClick = { vm.togglePin(note.id) }) {
-                    Icon(
-                        if (note.pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                        contentDescription = "Pin",
-                        tint = if (note.pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                IconButton(onClick = { vm.trash(note.id) }) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Move to trash")
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd),
+            ) {
+                WritePreviewToggle(
+                    mode = mode,
+                    onChange = { mode = it },
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                if (note.trashed) {
+                    IconButton(onClick = { vm.restore(note.id) }) {
+                        Icon(Icons.Filled.RestoreFromTrash, contentDescription = "Restore")
+                    }
+                    IconButton(onClick = { vm.purge(note.id) }) {
+                        Icon(Icons.Filled.DeleteForever, contentDescription = "Delete forever")
+                    }
+                } else {
+                    IconButton(onClick = { vm.togglePin(note.id) }) {
+                        Icon(
+                            if (note.pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                            contentDescription = "Pin",
+                            tint = if (note.pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = { vm.trash(note.id) }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Move to trash")
+                    }
                 }
             }
         }
@@ -209,7 +234,7 @@ fun Editor(
             }
         }
 
-        if (!note.trashed) {
+        if (!note.trashed && mode == EditorMode.Write) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -238,42 +263,100 @@ fun Editor(
                     .widthIn(max = READING_WIDTH)
                     .fillMaxWidth(),
             ) {
-                BasicTextField(
-                    value = value,
-                    onValueChange = { applyEdit(it) },
-                    readOnly = note.trashed,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(top = 30.dp, bottom = 64.dp),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    visualTransformation = transformation,
-                    decorationBox = { inner ->
-                        if (value.text.isEmpty() && !note.trashed) {
-                            Column {
-                                Text(
-                                    "Untitled",
-                                    style = MaterialTheme.typography.displaySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
-                                )
-                                Spacer(Modifier.height(12.dp))
-                                Text(
-                                    "Start writing. Use #tags, code blocks, tables — anything Markdown.",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
-                                )
+                if (mode == EditorMode.Preview) {
+                    MarkdownPreview(
+                        text = value.text,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(top = 30.dp, bottom = 64.dp),
+                    )
+                } else {
+                    BasicTextField(
+                        value = value,
+                        onValueChange = { applyEdit(it) },
+                        readOnly = note.trashed,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(top = 30.dp, bottom = 64.dp),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        visualTransformation = transformation,
+                        decorationBox = { inner ->
+                            if (value.text.isEmpty() && !note.trashed) {
+                                Column {
+                                    Text(
+                                        "Untitled",
+                                        style = MaterialTheme.typography.displaySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
+                                    )
+                                    Spacer(Modifier.height(12.dp))
+                                    Text(
+                                        "Start writing. Use #tags, code blocks, tables — anything Markdown.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
+                                    )
+                                }
                             }
-                        }
-                        inner()
-                    },
-                )
+                            inner()
+                        },
+                    )
+                }
             }
         }
     }
 }
 
 private val READING_WIDTH = 740.dp
+
+internal enum class EditorMode { Write, Preview }
+
+@Composable
+private fun WritePreviewToggle(
+    mode: EditorMode,
+    onChange: (EditorMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+        modifier = modifier.height(34.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ToggleSegment("Write", Icons.Filled.Edit, mode == EditorMode.Write) { onChange(EditorMode.Write) }
+            ToggleSegment("Preview", Icons.Filled.Visibility, mode == EditorMode.Preview) { onChange(EditorMode.Preview) }
+        }
+    }
+}
+
+@Composable
+private fun ToggleSegment(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(5.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = fg)
+    }
+}
 
 @Composable
 private fun SaveStatus(saving: Boolean) {
