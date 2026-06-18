@@ -71,6 +71,13 @@ class NotesViewModel(
         private set
     var showSettings by mutableStateOf(false)
         private set
+
+    /**
+     * Distraction-free writing mode: the sidebar + note list collapse away and the editor becomes a
+     * centered, wide-margin canvas (iA Writer / Bear-style "focus"). UI-only, never persisted.
+     */
+    var focusMode by mutableStateOf(false)
+        private set
     var storageProvider by mutableStateOf(StorageProvider.Local)
         private set
     var themeMode by mutableStateOf(ThemeMode.System)
@@ -308,6 +315,17 @@ class NotesViewModel(
 
     fun closeSettings() {
         showSettings = false
+    }
+
+    fun toggleFocusMode() {
+        focusMode = !focusMode
+    }
+
+    /** Returns true if focus mode was actually on (so callers can swallow the Esc key). */
+    fun exitFocusMode(): Boolean {
+        if (!focusMode) return false
+        focusMode = false
+        return true
     }
 
     fun selectStorage(provider: StorageProvider) {
