@@ -80,6 +80,7 @@ import app.pebo.core.Slug
 import app.pebo.export.ExportFormat
 import app.pebo.export.exportNote
 import app.pebo.export.pickSaveFile
+import app.pebo.ui.theme.LocalMonoFontFamily
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -182,7 +183,8 @@ fun Editor(
         val codeText = MaterialTheme.colorScheme.onSurface
         val codeBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         val quoteColor = MaterialTheme.colorScheme.onSurfaceVariant
-        val transformation = remember(tagColor, markerColor, codeText, codeBg, quoteColor) {
+        val codeFont = LocalMonoFontFamily.current
+        val transformation = remember(tagColor, markerColor, codeText, codeBg, quoteColor, codeFont) {
             MarkdownVisualTransformation(
                 tag = tagColor,
                 marker = markerColor,
@@ -190,6 +192,7 @@ fun Editor(
                 codeBg = codeBg,
                 quote = quoteColor,
                 link = tagColor,
+                codeFont = codeFont,
             )
         }
 

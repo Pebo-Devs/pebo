@@ -19,6 +19,7 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.materialIconsExtended)
+            implementation(compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.okio)
             implementation(libs.richeditor.compose)
@@ -49,4 +50,10 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "app.pebo.resources"
+    generateResClass = always
 }

@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.pebo.export.InlineSpan
 import app.pebo.export.parseInline
+import app.pebo.ui.theme.LocalMonoFontFamily
 
 /**
  * A from-scratch Compose renderer for the raw Markdown editing buffer. The editor stays the source of
@@ -215,6 +216,7 @@ private data class InlineColors(
     val tag: Color,
     val highlightBg: Color,
     val muted: Color,
+    val codeFont: FontFamily,
 )
 
 /** A warm amber highlight readable on both light and dark surfaces (`==text==`). */
@@ -242,7 +244,7 @@ private fun AnnotatedString.Builder.appendSpans(spans: List<InlineSpan>, c: Inli
             pushStyle(SpanStyle(background = c.highlightBg)); appendSpans(s.children, c); pop()
         }
         is InlineSpan.Code -> {
-            pushStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = c.code, background = c.codeBg))
+            pushStyle(SpanStyle(fontFamily = c.codeFont, color = c.code, background = c.codeBg))
             append(s.text); pop()
         }
         is InlineSpan.Link -> {
@@ -282,6 +284,7 @@ fun MarkdownPreview(
         tag = MaterialTheme.colorScheme.primary,
         highlightBg = highlightColor(MaterialTheme.colorScheme.surface),
         muted = MaterialTheme.colorScheme.onSurfaceVariant,
+        codeFont = LocalMonoFontFamily.current,
     )
     val body = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -441,7 +444,7 @@ private fun CodeBlockView(block: MdBlock.Code) {
         Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
             Text(
                 highlighted,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = LocalMonoFontFamily.current,
                 fontSize = 14.sp,
                 lineHeight = 21.sp,
                 color = MaterialTheme.colorScheme.onSurface,
