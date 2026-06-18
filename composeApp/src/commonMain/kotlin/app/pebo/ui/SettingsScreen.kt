@@ -1,6 +1,7 @@
 package app.pebo.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -512,9 +513,19 @@ private fun AboutPanel() {
     val scheme = MaterialTheme.colorScheme
     PanelHeader("About", "Pebo — a markdown-first, markdown-first notes app.")
     SettingsCard {
-        Text("Pebo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = scheme.onSurface)
-        Spacer(Modifier.height(4.dp))
-        Text("Version 0.2-dev", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                imageVector = peboLogo(),
+                contentDescription = "Pebo logo",
+                modifier = Modifier.size(44.dp),
+            )
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text("Pebo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = scheme.onSurface)
+                Text("Personal Edit Board Online", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = scheme.primary)
+                Text("Version 0.2-dev", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Text(
             "Native, offline-first notes built with Kotlin Multiplatform + Compose. Your notes stay as portable .md files in your own storage — local today, your cloud account next.",

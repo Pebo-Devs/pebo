@@ -2,6 +2,7 @@ package app.pebo.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,7 +68,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -97,30 +97,11 @@ fun Sidebar(vm: NotesViewModel, modifier: Modifier = Modifier) {
                 .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary,
-                            ),
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(9.dp)
-                        .background(
-                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f),
-                            shape = RoundedCornerShape(3.dp),
-                        ),
-                )
-            }
+            Image(
+                imageVector = peboLogo(),
+                contentDescription = "Pebo logo",
+                modifier = Modifier.size(30.dp),
+            )
             Column(Modifier.padding(start = 11.dp)) {
                 Text(
                     "Pebo",
@@ -129,7 +110,7 @@ fun Sidebar(vm: NotesViewModel, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    "Private markdown",
+                    "Personal Edit Board Online",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

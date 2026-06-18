@@ -1,6 +1,7 @@
 package app.pebo
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -13,6 +14,7 @@ import app.pebo.data.FileAppPreferences
 import app.pebo.data.LocalNoteStore
 import app.pebo.data.PREF_NOTES_DIR
 import app.pebo.ui.NotesViewModel
+import app.pebo.ui.peboLogo
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.platform.win32.WinDef
@@ -56,6 +58,7 @@ fun main() = application {
         onCloseRequest = ::exitApplication,
         title = "Pebo",
         state = windowState,
+        icon = rememberVectorPainter(peboLogo()),
     ) {
         LaunchedEffect(Unit) {
             applyWindowsTitleBar(window)
