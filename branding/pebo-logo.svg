@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" role="img" aria-label="Pebo">
+  <defs>
+    <linearGradient id="pebo-tile" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5B8CFF"/>
+      <stop offset="1" stop-color="#7C5CFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Page tile carrying the brand gradient, with a dog-ear fold sliced from the top-right corner. -->
+  <path fill="url(#pebo-tile)"
+        d="M11 0 H35 L48 13 V37 A11 11 0 0 1 37 48 H11 A11 11 0 0 1 0 37 V11 A11 11 0 0 1 11 0 Z"/>
+
+  <!-- The folded-over flap: a small triangle that gives the dog-ear depth. -->
+  <path fill="#000000" fill-opacity="0.2" d="M35 0 L48 13 H35 Z"/>
+
+  <!-- The white "P": a stem rising from the baseline into a full-circle bowl, drawn as one
+       continuous round-stroked subpath so stem and bowl fuse into a single solid glyph. -->
+  <path fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
+        d="M18 37 V11 A7 7 0 1 1 18 25"/>
+</svg>
