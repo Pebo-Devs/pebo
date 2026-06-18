@@ -45,11 +45,15 @@ class MarkdownVisualTransformation(
     }
 
     private fun decorate(raw: String): AnnotatedString = buildAnnotatedString {
-        append(raw)
-        if (raw.isEmpty()) return@buildAnnotatedString
-
         val codeRanges = fencedCodeRanges(raw)
         fun inCode(index: Int): Boolean = codeRanges.any { index in it }
+
+        // Render bullet-list markers (-, *, +) as a tinted "•" glyph, Bear-style. The swap is 1:1 in
+        // length so OffsetMapping.Identity stays exact and the on-disk `.md` keeps its plain markers.
+        val bulletPositions = ArrayList<Int>()
+        val display = bulletDisplay(raw, ::inCode, bulletPositions)
+        append(display)
+        if (raw.isEmpty()) return@buildAnnotatedString
 
         // Fenced code blocks: monospace + tinted background across the whole region.
         for (r in codeRanges) {
@@ -103,6 +107,37 @@ class MarkdownVisualTransformation(
         applyInline(raw, hashtagRegex, ::inCode) { m ->
             safeStyle(m.range.first, m.range.last + 1, SpanStyle(color = tag, fontWeight = FontWeight.Medium))
         }
+
+        // Accent the swapped bullet glyphs (applied last so nothing overrides their tint).
+        for (p in bulletPositions) {
+            safeStyle(p, p + 1, SpanStyle(color = tag, fontWeight = FontWeight.Bold))
+        }
+    }
+
+    /**
+     * Returns a render string identical in length to [raw] with each plain bullet-list marker
+     * (`-`/`*`/`+` followed by a space, but not task-list `- [ ]` items or `---` rules) replaced by a
+     * `•`. Replaced positions are reported in [out] so the caller can tint them. Length is preserved,
+     * so [OffsetMapping.Identity] stays valid and the source text is never mutated.
+     */
+    private fun bulletDisplay(raw: String, inCode: (Int) -> Boolean, out: MutableList<Int>): String {
+        if (raw.isEmpty()) return raw
+        val chars = raw.toCharArray()
+        var lineStart = 0
+        for (line in raw.split('\n')) {
+            if (!inCode(lineStart)) {
+                val m = listMarkerRegex.find(line)
+                if (m != null) {
+                    val markerIdx = lineStart + m.groupValues[1].length
+                    if (markerIdx in chars.indices) {
+                        chars[markerIdx] = '\u2022'
+                        out.add(markerIdx)
+                    }
+                }
+            }
+            lineStart += line.length + 1
+        }
+        return chars.concatToString()
     }
 
     private fun fencedCodeRanges(raw: String): List<IntRange> {
@@ -146,6 +181,7 @@ class MarkdownVisualTransformation(
     private companion object {
         val headingRegex = Regex("^(#{1,6})\\s+")
         val blockquoteRegex = Regex("^\\s*>")
+        val listMarkerRegex = Regex("^(\\s*)[-*+]\\s+(?!\\[[ xX]\\])")
         val boldRegex = Regex("\\*\\*(.+?)\\*\\*")
         val strikeRegex = Regex("~~(.+?)~~")
         val italicRegex = Regex("(?<![*\\w])[*_](?![*_\\s])([^*_\\n]+?)(?<![*_\\s])[*_](?![*\\w])")
