@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -17,12 +18,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
@@ -101,9 +104,41 @@ fun Editor(
         var acIndex by remember(note.id) { mutableIntStateOf(0) }
         var acDismissed by remember(note.id) { mutableStateOf<String?>(null) }
 
+        // Outline + heading folding ("Outline with focus").
+        var outlineOpen by remember(note.id) { mutableStateOf(false) }
+        var collapsed by remember(note.id) { mutableStateOf(emptySet<Int>()) }
+        var scrollOrdinal by remember(note.id) { mutableStateOf<Int?>(null) }
+        var activeOrdinal by remember(note.id) { mutableStateOf<Int?>(null) }
+        var writeNavTick by remember(note.id) { mutableIntStateOf(0) }
+        var writeNavTarget by remember(note.id) { mutableStateOf<Int?>(null) }
+        val previewListState = remember(note.id) { LazyListState() }
+        val outline = remember(value.text) { parseOutline(value.text) }
+
         fun applyEdit(newValue: TextFieldValue) {
             value = newValue
             vm.updateBody(note.id, newValue.text)
+        }
+
+        // Write-mode outline navigation: scroll the source field so the picked heading is near the top.
+        LaunchedEffect(writeNavTick) {
+            val off = writeNavTarget ?: return@LaunchedEffect
+            val tl = textLayout ?: return@LaunchedEffect
+            val rect = runCatching { tl.getCursorRect(off.coerceIn(0, value.text.length)) }.getOrNull()
+                ?: return@LaunchedEffect
+            writeScroll.animateScrollTo((rect.top - 24f).coerceAtLeast(0f).toInt())
+        }
+
+        fun navigateTo(item: OutlineItem) {
+            activeOrdinal = item.ordinal
+            if (mode == EditorMode.Preview) {
+                collapsed = emptySet()
+                scrollOrdinal = item.ordinal
+            } else {
+                val off = item.charOffset.coerceIn(0, value.text.length)
+                value = value.copy(selection = TextRange(off))
+                writeNavTarget = off
+                writeNavTick++
+            }
         }
 
         val tagColor = MaterialTheme.colorScheme.primary
@@ -200,6 +235,14 @@ fun Editor(
                 modifier = Modifier
                     .align(Alignment.CenterEnd),
             ) {
+                IconButton(onClick = { outlineOpen = !outlineOpen }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.FormatListBulleted,
+                        contentDescription = "Toggle outline",
+                        tint = if (outlineOpen) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 WritePreviewToggle(
                     mode = mode,
                     onChange = { mode = it },
@@ -289,12 +332,27 @@ fun Editor(
             acDismissed = null
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 40.dp),
-        ) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (outlineOpen) {
+                OutlinePanel(
+                    items = outline,
+                    activeOrdinal = activeOrdinal,
+                    onPick = { navigateTo(it) },
+                )
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                )
+            }
             Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .padding(horizontal = 40.dp),
+            ) {
+              Box(
                 Modifier
                     .fillMaxHeight()
                     .widthIn(max = READING_WIDTH)
@@ -303,10 +361,15 @@ fun Editor(
                 if (mode == EditorMode.Preview) {
                     MarkdownPreview(
                         text = value.text,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(top = 30.dp, bottom = 64.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        listState = previewListState,
+                        collapsed = collapsed,
+                        onToggleFold = { idx ->
+                            collapsed = if (idx in collapsed) collapsed - idx else collapsed + idx
+                        },
+                        contentPadding = PaddingValues(top = 30.dp, bottom = 64.dp),
+                        scrollToOrdinal = scrollOrdinal,
+                        onScrollConsumed = { scrollOrdinal = null },
                     )
                 } else {
                     BasicTextField(
@@ -379,6 +442,7 @@ fun Editor(
                         }
                     }
                 }
+              }
             }
         }
     }
