@@ -8,6 +8,7 @@ import app.pebo.core.NoteFilter
 import app.pebo.core.nowIso
 import app.pebo.data.AppPreferences
 import app.pebo.data.NoteStore
+import app.pebo.data.PREF_NOTES_DIR
 import app.pebo.ui.theme.Palettes
 import app.pebo.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -48,10 +49,14 @@ data class NoteTreeRow(
  * locally for instant UI, and writes through to disk (edits are debounced).
  */
 class NotesViewModel(
-    private val store: NoteStore,
+    store: NoteStore,
     private val scope: CoroutineScope,
     private val prefs: AppPreferences = AppPreferences.NoOp,
+    initialNotesDir: String = "",
+    private val storeFactory: ((String) -> NoteStore)? = null,
 ) {
+    private var store: NoteStore = store
+
     var active by mutableStateOf<List<Note>>(emptyList())
         private set
     var trashed by mutableStateOf<List<Note>>(emptyList())
@@ -71,6 +76,10 @@ class NotesViewModel(
     var themeMode by mutableStateOf(ThemeMode.System)
         private set
     var paletteId by mutableStateOf(Palettes.DEFAULT_ID)
+        private set
+
+    /** Absolute path of the folder holding the active workspace (its `notes/` + `.trash/`). */
+    var notesDir by mutableStateOf(initialNotesDir)
         private set
 
     init {
@@ -281,6 +290,24 @@ class NotesViewModel(
 
     fun selectStorage(provider: StorageProvider) {
         if (provider.available) storageProvider = provider
+    }
+
+    /**
+     * Re-points the local workspace at [path] (where its `notes/` and `.trash/` folders live),
+     * persists the choice, and reloads. No-op when the path is blank, unchanged, or when no
+     * [storeFactory] was supplied (e.g. in tests).
+     */
+    fun changeNotesDir(path: String) {
+        val trimmed = path.trim()
+        if (trimmed.isBlank() || trimmed == notesDir) return
+        val factory = storeFactory ?: return
+        store = factory(trimmed)
+        notesDir = trimmed
+        selectedId = null
+        query = ""
+        filter = NoteFilter.All
+        prefs.putString(PREF_NOTES_DIR, trimmed)
+        refresh()
     }
 
     fun selectPalette(id: String) {
