@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
@@ -265,6 +267,14 @@ fun Editor(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
+                IconButton(onClick = { vm.toggleFocusMode() }) {
+                    Icon(
+                        if (vm.focusMode) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
+                        contentDescription = if (vm.focusMode) "Exit focus mode" else "Focus mode",
+                        tint = if (vm.focusMode) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 IconButton(onClick = { outlineOpen = !outlineOpen }) {
                     Icon(
                         Icons.AutoMirrored.Filled.FormatListBulleted,

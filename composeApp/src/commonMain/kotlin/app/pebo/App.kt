@@ -3,8 +3,11 @@ package app.pebo
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -19,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,6 +30,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -59,8 +64,16 @@ fun App(vm: NotesViewModel, dataDir: String) {
                             paletteOpen = !paletteOpen
                             true
                         }
+                        (e.isCtrlPressed || e.isMetaPressed) && e.isShiftPressed && e.key == Key.F -> {
+                            vm.toggleFocusMode()
+                            true
+                        }
                         e.key == Key.Escape && paletteOpen -> {
                             paletteOpen = false
+                            true
+                        }
+                        e.key == Key.Escape && vm.focusMode -> {
+                            vm.exitFocusMode()
                             true
                         }
                         else -> false
@@ -81,11 +94,19 @@ fun App(vm: NotesViewModel, dataDir: String) {
                             }
                         }
                         Row(Modifier.fillMaxSize()) {
-                            Sidebar(vm, Modifier.width(252.dp))
-                            VPaneDivider()
-                            NoteList(vm, Modifier.width(368.dp))
-                            VPaneDivider()
-                            Editor(vm, Modifier.weight(1f))
+                            if (!vm.focusMode) {
+                                Sidebar(vm, Modifier.width(252.dp))
+                                VPaneDivider()
+                                NoteList(vm, Modifier.width(368.dp))
+                                VPaneDivider()
+                            }
+                            if (vm.focusMode) {
+                                Box(Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                                    Editor(vm, Modifier.fillMaxHeight().widthIn(max = 920.dp).fillMaxWidth())
+                                }
+                            } else {
+                                Editor(vm, Modifier.weight(1f))
+                            }
                         }
                     } else {
                         CompactLayout(vm)
