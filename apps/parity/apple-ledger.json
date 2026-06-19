@@ -537,12 +537,12 @@
         "macos-desktop-dmg",
         "actual-folderpicker-ios"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "Settings screen (theme mode, palette, storage backend) works on Apple. 'On this device' + 'Any folder you choose' use the Apple folder picker. Cloud backends show the same gated state as desktop.",
       "notes": "ui/SettingsScreen.kt, StorageProvider.kt.",
-      "result_note": "Settings work on macOS; iOS folder-pick returns null pending async UIDocumentPicker.",
-      "updated": "2026-06-19T07:16:33Z"
+      "result_note": "Responsive single-pane Settings verified on the iOS simulator (was squished); 'On this device' active. Folder-pick on iOS still uses the Documents dir (async picker is a separate follow-up).",
+      "updated": "2026-06-19T14:45:49Z"
     },
     {
       "id": "parity-themes",
@@ -699,5 +699,5 @@
       "updated": "2026-06-19T07:16:33Z"
     }
   ],
-  "updated": "2026-06-19T14:38:22Z"
+  "updated": "2026-06-19T14:45:49Z"
 }
