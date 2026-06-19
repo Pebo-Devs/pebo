@@ -16,6 +16,7 @@ ordinary `.md` files in a folder you control — on your device or your own clou
 ![Desktop](https://img.shields.io/badge/Desktop-Windows%20%7C%20macOS%20%7C%20Linux-2EA043)
 ![Tests](https://img.shields.io/badge/tests-175%2B%20passing-3FB950)
 ![Storage](https://img.shields.io/badge/files-plain%20.md-555)
+![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue)
 
 </div>
 
@@ -42,9 +43,9 @@ desktop and mobile apps instead of a heavy web wrapper.
 
 ### ✍️ A real Markdown editor
 
-- Full Markdown element set in the live preview: **foldable headings**, paragraphs, **bold / italic /
-  inline code / links**, bullet lists, numbered lists, **task lists**, blockquotes, **fenced code
-  blocks**, **tables**, images, and horizontal rules.
+- Full Markdown element set in the live preview: **foldable headings**, paragraphs, \*\*bold / italic /
+  inline code / links\*\*, bullet lists, numbered lists, **task lists**, blockquotes, \*\*fenced code
+  blocks\*\*, **tables**, images, and horizontal rules.
 - **Plain text stays the source of truth.** Toolbar actions (bold, italic, headings, lists, code,
   quote, link…) rewrite the raw Markdown directly, so code fences, tables, and task lists always
   survive round‑trips verbatim.
@@ -199,7 +200,7 @@ layer, so platform targets can be added without rewriting the core.
 
 ## Project structure
 
-```
+```javascript
 pebo/
 ├─ branding/                       # Logo source (SVG) + generated PNG/ICO/ICNS + installer icons
 ├─ composeApp/
@@ -245,7 +246,19 @@ Pebo is built on a shared Kotlin Multiplatform core specifically so it can grow 
 
 ## License
 
-Not yet decided. Until a license file is added, all rights are reserved by the author.
+Pebo is **source‑available** under the [**Functional Source License v1.1 (FSL‑1.1‑ALv2)**](LICENSE).
+
+In plain terms:
+
+- ✅ **You can** read the source, run it, self‑host it, modify it, and contribute back.
+- ✅ **You can** use it for internal use, non‑commercial education and research, and professional
+  services for a licensee.
+- 🚫 **You can't** use it for a **Competing Use** — i.e. shipping it (or a derivative) as a commercial
+  product or service that substitutes for Pebo.
+- 🕓 **It becomes Apache‑2.0** automatically two years after each version is released.
+
+Copyright © 2026 Atul Gupta. "FSL" and the Functional Source License are works of the FSL authors;
+see [fsl.software](https://fsl.software).
 
 ---
 
@@ -254,4 +267,4 @@ Not yet decided. Until a license file is added, all rights are reserved by the a
 **Pebo — Personal Edit Board Online**
 Made with Kotlin & Compose Multiplatform.
 
-</div>
+</div>
