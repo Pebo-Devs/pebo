@@ -78,18 +78,3 @@ class DesktopOAuthRedirectReceiver(
     private fun decode(value: String): String =
         URLDecoder.decode(value, StandardCharsets.UTF_8.name())
 }
-
-sealed interface OAuthRedirectResult {
-    val state: String?
-
-    data class Code(
-        val code: String,
-        override val state: String,
-    ) : OAuthRedirectResult
-
-    data class Error(
-        val error: String,
-        val description: String?,
-        override val state: String?,
-    ) : OAuthRedirectResult
-}
