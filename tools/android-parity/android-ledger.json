@@ -217,8 +217,8 @@
       "verify": ":composeApp:assembleDebug",
       "acceptance": "Launcher shows the Pebo adaptive icon; a branded splash (Android 12+ SplashScreen) appears; app name is Pebo.",
       "description": "Generate a proper adaptive launcher icon (foreground from branding/pebo-logo, brand background) for all densities, plus a monochrome layer for themed icons. Add a branded splash via androidx.core.splashscreen. Ensure app_name=Pebo. Keep visuals consistent with the desktop branding.",
-      "notes": "Adaptive icon (gradient + white P + monochrome) from branding SVG; branded core-splashscreen. Validated on emulator.",
-      "lastVerifiedUtc": "2026-06-19T07:39:44.5467103Z"
+      "lastVerifiedUtc": "2026-06-19T07:39:44.5467103Z",
+      "notes": "Adaptive launcher icon uses the real Pebo page-tile logo (gradient + dog-ear + white P) on white, sized to keep the dog-ear inside the mask. Monochrome = P. Splash unchanged. Verified on emulator App Info."
     },
     {
       "id": "android-docs-release",
