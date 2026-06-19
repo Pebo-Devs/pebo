@@ -50,6 +50,38 @@ class DesktopSecureTokenStoreTest {
         assertEquals("o-access", reloaded.load(OAuthProviderId.OneDrive)?.accessToken)
     }
 
+    @Test
+    fun persistsTokensInKeychainOnMac() = runBlocking {
+        if (!isMac()) return@runBlocking
+        val dir = Files.createTempDirectory("pebo-token-store").toString()
+        val account = "pebo-test-" + java.util.UUID.randomUUID()
+        val path = ("$dir/$account").toPath()
+        val store = DesktopSecureTokenStore(FileSystem.SYSTEM, path)
+        try {
+            try {
+                store.save(StoredOAuthTokens(OAuthProviderId.GoogleDrive, "g-access", "g-refresh", 123L, "Bearer", "drive.file"))
+            } catch (e: Exception) {
+                return@runBlocking // login keychain unavailable/locked (e.g. headless CI) -> skip
+            }
+            store.save(StoredOAuthTokens(OAuthProviderId.OneDrive, "o-access", "o-refresh", null, null, null))
+
+            val reloaded = DesktopSecureTokenStore(FileSystem.SYSTEM, path)
+            assertEquals("g-access", reloaded.load(OAuthProviderId.GoogleDrive)?.accessToken)
+            assertEquals("o-refresh", reloaded.load(OAuthProviderId.OneDrive)?.refreshToken)
+
+            reloaded.clear(OAuthProviderId.GoogleDrive)
+            val afterClear = DesktopSecureTokenStore(FileSystem.SYSTEM, path)
+            assertEquals(null, afterClear.load(OAuthProviderId.GoogleDrive))
+            assertEquals("o-access", afterClear.load(OAuthProviderId.OneDrive)?.accessToken)
+        } finally {
+            ProcessBuilder("security", "delete-generic-password", "-s", "app.pebo.oauth", "-a", account)
+                .redirectErrorStream(true).start().waitFor()
+        }
+    }
+
+    private fun isMac(): Boolean =
+        System.getProperty("os.name").contains("Mac", ignoreCase = true)
+
     private fun isWindows(): Boolean =
         System.getProperty("os.name").contains("Windows", ignoreCase = true)
 }
