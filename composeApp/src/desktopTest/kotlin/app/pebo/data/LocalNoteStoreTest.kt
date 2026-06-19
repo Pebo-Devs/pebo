@@ -82,4 +82,53 @@ class LocalNoteStoreTest {
         val active = store.load().active
         assertEquals(b.id, active.first().id)
     }
+
+    @Test
+    fun adoptsPreexistingTopLevelMarkdown() = runBlocking {
+        val fs = FileSystem.SYSTEM
+        val dir = Files.createTempDirectory("pebo-test").toString().toPath()
+        // Markdown the user already had in the folder, with no Pebo frontmatter.
+        fs.write(dir / "ideas.md") { writeUtf8("# Trip ideas\nVisit Kyoto in autumn. #travel") }
+
+        val snap = LocalNoteStore(fs, dir).load()
+
+        assertEquals(1, snap.active.size)
+        val note = snap.active.single()
+        assertEquals("ideas", note.id)
+        assertEquals("Trip ideas", note.title)
+        assertTrue(note.body.contains("Kyoto"))
+        assertTrue(note.tags.contains("travel"))
+    }
+
+    @Test
+    fun editingAdoptedTopLevelFileWritesBackInPlace() = runBlocking {
+        val fs = FileSystem.SYSTEM
+        val dir = Files.createTempDirectory("pebo-test").toString().toPath()
+        fs.write(dir / "ideas.md") { writeUtf8("# Trip ideas\nVisit Kyoto.") }
+
+        val store = LocalNoteStore(fs, dir)
+        val note = store.load().active.single()
+        store.save(note.copy(body = "# Trip ideas\nVisit Kyoto and Nara."))
+
+        // The original top-level file is updated in place; no duplicate appears under notes/.
+        assertTrue(fs.exists(dir / "ideas.md"))
+        assertTrue(!fs.exists(dir / "notes" / "ideas.md"))
+        val reloaded = store.load().active
+        assertEquals(1, reloaded.size)
+        assertTrue(reloaded.single().body.contains("Nara"))
+    }
+
+    @Test
+    fun notesSubfolderWinsOverTopLevelOnIdCollision() = runBlocking {
+        val fs = FileSystem.SYSTEM
+        val dir = Files.createTempDirectory("pebo-test").toString().toPath()
+        fs.createDirectories(dir / "notes")
+        fs.write(dir / "notes" / "dup.md") { writeUtf8("---\nid: dup\n---\nFrom notes subfolder") }
+        fs.write(dir / "dup.md") { writeUtf8("---\nid: dup\n---\nFrom top level") }
+
+        val active = LocalNoteStore(fs, dir).load().active
+
+        assertEquals(1, active.count { it.id == "dup" })
+        assertTrue(active.single { it.id == "dup" }.body.contains("notes subfolder"))
+    }
 }
