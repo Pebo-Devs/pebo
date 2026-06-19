@@ -156,15 +156,17 @@
       "id": "android-secure-token-store",
       "title": "Android SecureTokenStore (EncryptedSharedPreferences)",
       "area": "feature",
-      "status": "pending",
-      "attempts": 0,
+      "status": "done",
+      "attempts": 1,
       "maxAttempts": 4,
       "dependsOn": [
         "android-build-green"
       ],
       "verify": ":composeApp:assembleDebug",
       "acceptance": "An Android SecureTokenStore stores OAuth tokens encrypted at rest, mirroring DesktopSecureTokenStore semantics.",
-      "description": "Provide an Android SecureTokenStore implementation backed by androidx.security:security-crypto EncryptedSharedPreferences (or Keystore-wrapped storage) with the same load/save/clear contract and StoredOAuthTokens serialization as DesktopSecureTokenStore. Add the dependency to androidMain. No tokens in plaintext."
+      "description": "Provide an Android SecureTokenStore implementation backed by androidx.security:security-crypto EncryptedSharedPreferences (or Keystore-wrapped storage) with the same load/save/clear contract and StoredOAuthTokens serialization as DesktopSecureTokenStore. Add the dependency to androidMain. No tokens in plaintext.",
+      "notes": "AndroidSecureTokenStore via EncryptedSharedPreferences (security-crypto). Verified assembleDebug green.",
+      "lastVerifiedUtc": "2026-06-19T07:32:55.7433211Z"
     },
     {
       "id": "android-oauth-signin",
