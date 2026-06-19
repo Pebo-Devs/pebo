@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.pebo.PlatformBackHandler
 import app.pebo.platform.pickFolder
 import app.pebo.ui.theme.PeboPalette
 import app.pebo.ui.theme.Palettes
@@ -79,10 +81,27 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scheme = MaterialTheme.colorScheme
+    BoxWithConstraints(modifier.fillMaxSize().background(scheme.background)) {
+        if (maxWidth >= 700.dp) {
+            SettingsTwoPane(vm, dataDir, onBack)
+        } else {
+            SettingsCompact(vm, dataDir, onBack)
+        }
+    }
+}
+
+/** Wide layout: persistent left nav + content pane (desktop / tablet). */
+@Composable
+private fun SettingsTwoPane(
+    vm: NotesViewModel,
+    dataDir: String,
+    onBack: () -> Unit,
+) {
     var section by remember { mutableStateOf(SettingsSection.Appearance) }
     val scheme = MaterialTheme.colorScheme
 
-    Row(modifier.fillMaxSize().background(scheme.background)) {
+    Row(Modifier.fillMaxSize()) {
         // ── Left nav ────────────────────────────────────────────────────────
         Column(
             Modifier
@@ -91,22 +110,7 @@ fun SettingsScreen(
                 .background(scheme.surface.copy(alpha = 0.55f))
                 .padding(horizontal = 14.dp, vertical = 14.dp),
         ) {
-            Row(
-                Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable(onClick = onBack)
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = scheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Back to notes", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-            }
+            BackToNotesRow(onBack)
             Spacer(Modifier.height(14.dp))
             Text(
                 "Settings",
@@ -133,15 +137,114 @@ fun SettingsScreen(
                     .padding(horizontal = 40.dp, vertical = 34.dp),
             ) {
                 Column(Modifier.widthIn(max = 920.dp).fillMaxWidth()) {
-                    when (section) {
-                        SettingsSection.Appearance -> AppearancePanel(vm)
-                        SettingsSection.Storage -> StoragePanel(vm, dataDir)
-                        SettingsSection.General -> GeneralPanel()
-                        SettingsSection.About -> AboutPanel()
-                    }
+                    SettingsPanel(section, vm, dataDir)
                 }
             }
         }
+    }
+}
+
+/**
+ * Narrow layout (phones): a single-pane master-detail. The section list shows full-width; tapping a
+ * section opens its content full-width with a back arrow that returns to the list (system Back too).
+ * This mirrors the main app's CompactLayout so Settings never crams two panes into a phone width.
+ */
+@Composable
+private fun SettingsCompact(
+    vm: NotesViewModel,
+    dataDir: String,
+    onBack: () -> Unit,
+) {
+    var openSection by remember { mutableStateOf<SettingsSection?>(null) }
+    val current = openSection
+
+    Column(Modifier.fillMaxSize()) {
+        if (current == null) {
+            CompactSettingsBar(title = "Settings", onBack = onBack)
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                SettingsSection.entries.forEach { entry ->
+                    NavRow(entry, selected = false, onClick = { openSection = entry })
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+        } else {
+            PlatformBackHandler(enabled = true) { openSection = null }
+            CompactSettingsBar(title = current.title, onBack = { openSection = null })
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+            ) {
+                SettingsPanel(current, vm, dataDir)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsPanel(section: SettingsSection, vm: NotesViewModel, dataDir: String) {
+    when (section) {
+        SettingsSection.Appearance -> AppearancePanel(vm)
+        SettingsSection.Storage -> StoragePanel(vm, dataDir)
+        SettingsSection.General -> GeneralPanel()
+        SettingsSection.About -> AboutPanel()
+    }
+}
+
+@Composable
+private fun BackToNotesRow(onBack: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onBack)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = scheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text("Back to notes", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun CompactSettingsBar(title: String, onBack: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onBack)
+                .padding(8.dp),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = scheme.onSurface,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.width(6.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = scheme.onSurface,
+        )
     }
 }
 
