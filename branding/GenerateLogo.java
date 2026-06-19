@@ -108,11 +108,16 @@ public final class GenerateLogo {
         g.setColor(FOLD_SHADE);
         g.fill(flap);
 
-        // The "P": stem + full-circle bowl, round-stroked so they fuse into one solid glyph.
+        // The "P": a stem rising from the baseline into a bowl on its upper-right, drawn as one
+        // continuous round-stroked subpath so the stem and bowl fuse into a single solid letter.
+        // Matches branding/pebo-logo.svg ("M18 37 V11 A7 7 0 1 1 18 25") and the in-app PeboLogo.
         g.setColor(MARK);
         g.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        g.draw(new Line2D.Double(18, 37, 18, 11));         // stem
-        g.draw(new Ellipse2D.Double(11, 11, 14, 14));      // bowl: circle centre (18,18) r=7
+        Path2D.Double glyph = new Path2D.Double();
+        glyph.moveTo(18, 37);                                              // bottom of the stem
+        glyph.lineTo(18, 11);                                              // stem up to the top
+        glyph.append(new Arc2D.Double(11, 11, 14, 14, 90, -180, Arc2D.OPEN), true); // right-hand bowl
+        g.draw(glyph);
 
         g.dispose();
         return img;
