@@ -6,10 +6,10 @@ import javax.imageio.ImageIO;
 /**
  * Renders the iOS app-icon PNG from the Pebo brand mark.
  *
- * iOS app icons must be a full-bleed, fully opaque square (the system applies its own rounded mask and
- * rejects alpha). This composites {@code pebo-logo-1024.png} (the transparent brand tile) onto a
- * full-bleed background painted with the SAME brand gradient as the tile, so the rounded corners blend
- * seamlessly into a solid icon.
+ * iOS app icons must be a fully opaque square (the system applies its own rounded mask and rejects
+ * alpha). This draws the transparent brand logo ({@code pebo-logo-1024.png}) centered on an opaque
+ * white card with a small margin, so the document tile + dog-ear + "P" read exactly like the in-app
+ * logo.
  *
  * Usage (from repo root):
  *   javac -d branding/out branding/GenerateIosIcon.java
@@ -19,10 +19,8 @@ import javax.imageio.ImageIO;
  * Pure JDK — no external dependencies.
  */
 public final class GenerateIosIcon {
-    // Same brand gradient + geometry as GenerateLogo / pebo-logo.svg (48-unit viewport).
-    private static final Color GRADIENT_TOP = new Color(0x5B, 0x8C, 0xFF);
-    private static final Color GRADIENT_BOTTOM = new Color(0x7C, 0x5C, 0xFF);
-    private static final double VP = 48.0;
+    /** Fraction of the icon left as margin on each side around the logo. */
+    private static final double MARGIN = 0.15;
 
     public static void main(String[] args) throws Exception {
         File src = new File(args[0]);
@@ -38,13 +36,12 @@ public final class GenerateIosIcon {
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-        double s = n / VP;
-        g.setPaint(new GradientPaint(
-            (float) (2 * s), (float) (2 * s), GRADIENT_TOP,
-            (float) (46 * s), (float) (46 * s), GRADIENT_BOTTOM
-        ));
+        g.setColor(Color.WHITE);
         g.fillRect(0, 0, n, n);
-        g.drawImage(logo, 0, 0, null);
+
+        int pad = (int) Math.round(n * MARGIN);
+        int size = n - 2 * pad;
+        g.drawImage(logo, pad, pad, size, size, null);
         g.dispose();
 
         out.getParentFile().mkdirs();
