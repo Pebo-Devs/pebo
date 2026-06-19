@@ -8,6 +8,8 @@ import com.sun.jna.WString
 import com.sun.jna.platform.win32.Ole32
 import com.sun.jna.win32.StdCallLibrary
 import com.sun.jna.win32.W32APIOptions
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Desktop folder chooser backed by the **native Win32 shell folder dialog** (`SHBrowseForFolder`)
@@ -23,10 +25,13 @@ import com.sun.jna.win32.W32APIOptions
  * (required by `BIF_NEWDIALOGSTYLE`). We [Thread.join] the worker so the call blocks until the user
  * picks a folder or cancels; the `join()` publishes [result] back to the caller safely
  * (happens-before), so no `@Volatile` is needed. Returns the chosen absolute path, or null on cancel.
+ *
+ * The blocking work is moved to [Dispatchers.IO] so the `suspend` contract is honoured and the
+ * Compose UI dispatcher is never blocked while the modal dialog is open.
  */
-actual fun pickFolder(title: String, initialPath: String?): String? {
+actual suspend fun pickFolder(title: String, initialPath: String?): String? = withContext(Dispatchers.IO) {
     if (!System.getProperty("os.name", "").startsWith("Windows")) {
-        return null
+        return@withContext null
     }
 
     var result: String? = null
@@ -68,7 +73,7 @@ actual fun pickFolder(title: String, initialPath: String?): String? {
 
     worker.start()
     worker.join()
-    return result
+    result
 }
 
 private const val MAX_PATH = 260

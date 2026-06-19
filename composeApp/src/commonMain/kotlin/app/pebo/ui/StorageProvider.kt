@@ -9,7 +9,7 @@ enum class StorageProvider(
 ) {
     Local(
         "On this device",
-        "Notes saved as .md files in a local folder",
+        "Any folder you choose — notes saved as portable .md files you fully own",
         "Active",
         true,
     ),

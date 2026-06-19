@@ -111,15 +111,18 @@
       "id": "android-folder-picker-saf",
       "title": "Full SAF folder selection + persisted access",
       "area": "feature",
-      "status": "pending",
-      "attempts": 0,
+      "status": "done",
+      "attempts": 1,
       "maxAttempts": 5,
       "dependsOn": [
         "android-build-green"
       ],
       "verify": ":composeApp:assembleDebug",
       "acceptance": "User can pick any folder via the system document-tree picker; selection persists across launches and the notes store reads/writes there.",
-      "description": "Implement real 'Any folder you choose' parity. Use ACTION_OPEN_DOCUMENT_TREE via the Activity's ActivityResultLauncher, persist the URI permission (takePersistableUriPermission), and make the chosen tree usable by the okio-based LocalNoteStore — either by adapting okio FileSystem to DocumentFile/SAF, or by resolving a real path where the platform allows. Bridge the UI-thread clickable call to a coroutine without ANR (e.g., expose a suspend pickFolder and update the single call site in SettingsScreen.kt to launch it; behavior identical to desktop). Update StorageProvider/Settings copy if needed so 'Any folder you choose' is Active."
+      "description": "Implement real 'Any folder you choose' parity. Use ACTION_OPEN_DOCUMENT_TREE via the Activity's ActivityResultLauncher, persist the URI permission (takePersistableUriPermission), and make the chosen tree usable by the okio-based LocalNoteStore — either by adapting okio FileSystem to DocumentFile/SAF, or by resolving a real path where the platform allows. Bridge the UI-thread clickable call to a coroutine without ANR (e.g., expose a suspend pickFolder and update the single call site in SettingsScreen.kt to launch it; behavior identical to desktop). Update StorageProvider/Settings copy if needed so 'Any folder you choose' is Active.",
+      "lastStartedUtc": "2026-06-19T06:42:37.9604539Z",
+      "notes": "Implemented by loop agent (SafFileSystem okio adapter + SAF picker + suspend pickFolder + call-site refactor). Verified green: assembleDebug + desktop compile + tests.",
+      "lastVerifiedUtc": "2026-06-19T07:17:55.5196164Z"
     },
     {
       "id": "android-export-saf-share",
