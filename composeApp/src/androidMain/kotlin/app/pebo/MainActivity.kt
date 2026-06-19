@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import app.pebo.data.AppPreferences
 import app.pebo.data.FileAppPreferences
 import app.pebo.data.LocalNoteStore
@@ -36,6 +37,7 @@ import okio.Path.Companion.toPath
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         CurrentActivityHolder.set(this)
