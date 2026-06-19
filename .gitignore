@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+**/build/
+!src/**/build/
+
+# Kotlin
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.fleet/
+.vscode/
+
+# OS / misc
+.DS_Store
+Thumbs.db
+local.properties
+*.hprof
+*.log
+
+# Compose / KMP native build leftovers
+**/kotlin-js-store/
+xcuserdata/

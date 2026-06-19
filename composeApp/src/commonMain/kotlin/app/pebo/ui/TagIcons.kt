@@ -1,0 +1,774 @@
+package app.pebo.ui
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Rocket
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Cases
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.MeetingRoom
+import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.filled.Domain
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.ShoppingBasket
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Note
+import androidx.compose.material.icons.filled.StickyNote2
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Task
+import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.WatchLater
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Comment
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Sms
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PhoneInTalk
+import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.ContactMail
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Diversity3
+import androidx.compose.material.icons.filled.SupportAgent
+import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Announcement
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.DataObject
+import androidx.compose.material.icons.filled.DataArray
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Router
+import androidx.compose.material.icons.filled.Lan
+import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.DeviceHub
+import androidx.compose.material.icons.filled.Api
+import androidx.compose.material.icons.filled.Webhook
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Construction
+import androidx.compose.material.icons.filled.Handyman
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.ViewModule
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.SpaceDashboard
+import androidx.compose.material.icons.filled.DeveloperMode
+import androidx.compose.material.icons.filled.IntegrationInstructions
+import androidx.compose.material.icons.filled.Html
+import androidx.compose.material.icons.filled.Css
+import androidx.compose.material.icons.filled.Javascript
+import androidx.compose.material.icons.filled.Php
+import androidx.compose.material.icons.filled.DataThresholding
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Laptop
+import androidx.compose.material.icons.filled.DesktopWindows
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.PhoneIphone
+import androidx.compose.material.icons.filled.Tablet
+import androidx.compose.material.icons.filled.TabletMac
+import androidx.compose.material.icons.filled.Watch
+import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Mouse
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Headset
+import androidx.compose.material.icons.filled.Speaker
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Scanner
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Power
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Cable
+import androidx.compose.material.icons.filled.Usb
+import androidx.compose.material.icons.filled.SdCard
+import androidx.compose.material.icons.filled.SimCard
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.FolderSpecial
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Topic
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.LabelImportant
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.StarHalf
+import androidx.compose.material.icons.filled.Grade
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.GppGood
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Brightness5
+import androidx.compose.material.icons.filled.NightlightRound
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Thunderstorm
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Umbrella
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Water
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Waves
+import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Forest
+import androidx.compose.material.icons.filled.Grass
+import androidx.compose.material.icons.filled.Yard
+import androidx.compose.material.icons.filled.LocalFlorist
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Compost
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.CrueltyFree
+import androidx.compose.material.icons.filled.EmojiNature
+import androidx.compose.material.icons.filled.Terrain
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.BeachAccess
+import androidx.compose.material.icons.filled.Hiking
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.RestaurantMenu
+import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.LocalBar
+import androidx.compose.material.icons.filled.WineBar
+import androidx.compose.material.icons.filled.LocalPizza
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.LunchDining
+import androidx.compose.material.icons.filled.DinnerDining
+import androidx.compose.material.icons.filled.BreakfastDining
+import androidx.compose.material.icons.filled.BakeryDining
+import androidx.compose.material.icons.filled.Icecream
+import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.Cookie
+import androidx.compose.material.icons.filled.EmojiFoodBeverage
+import androidx.compose.material.icons.filled.RamenDining
+import androidx.compose.material.icons.filled.RiceBowl
+import androidx.compose.material.icons.filled.SetMeal
+import androidx.compose.material.icons.filled.Tapas
+import androidx.compose.material.icons.filled.Liquor
+import androidx.compose.material.icons.filled.LocalDrink
+import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Blender
+import androidx.compose.material.icons.filled.Microwave
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.FlightTakeoff
+import androidx.compose.material.icons.filled.FlightLand
+import androidx.compose.material.icons.filled.Train
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.TwoWheeler
+import androidx.compose.material.icons.filled.ElectricCar
+import androidx.compose.material.icons.filled.LocalTaxi
+import androidx.compose.material.icons.filled.Sailing
+import androidx.compose.material.icons.filled.DirectionsBoat
+import androidx.compose.material.icons.filled.Subway
+import androidx.compose.material.icons.filled.Tram
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.Luggage
+import androidx.compose.material.icons.filled.Backpack
+import androidx.compose.material.icons.filled.Festival
+import androidx.compose.material.icons.filled.Attractions
+import androidx.compose.material.icons.filled.Museum
+import androidx.compose.material.icons.filled.TempleBuddhist
+import androidx.compose.material.icons.filled.Church
+import androidx.compose.material.icons.filled.Castle
+import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.SportsBasketball
+import androidx.compose.material.icons.filled.SportsSoccer
+import androidx.compose.material.icons.filled.SportsTennis
+import androidx.compose.material.icons.filled.SportsBaseball
+import androidx.compose.material.icons.filled.SportsFootball
+import androidx.compose.material.icons.filled.SportsCricket
+import androidx.compose.material.icons.filled.SportsGolf
+import androidx.compose.material.icons.filled.SportsMma
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.filled.Pool
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.DownhillSkiing
+import androidx.compose.material.icons.filled.Snowboarding
+import androidx.compose.material.icons.filled.Skateboarding
+import androidx.compose.material.icons.filled.Surfing
+import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.Piano
+import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Theaters
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.VideogameAsset
+import androidx.compose.material.icons.filled.Brush
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Draw
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.DesignServices
+import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.ImportContacts
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Biotech
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Functions
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.TipsAndUpdates
+import androidx.compose.material.icons.filled.EmojiObjects
+import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.Redeem
+import androidx.compose.material.icons.filled.Loyalty
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Healing
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Vaccines
+import androidx.compose.material.icons.filled.Bloodtype
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.House
+import androidx.compose.material.icons.filled.Cottage
+import androidx.compose.material.icons.filled.Villa
+import androidx.compose.material.icons.filled.Bed
+import androidx.compose.material.icons.filled.Bathtub
+import androidx.compose.material.icons.filled.Chair
+import androidx.compose.material.icons.filled.Weekend
+import androidx.compose.material.icons.filled.LocalLaundryService
+import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.Deck
+import androidx.compose.material.icons.filled.Fireplace
+import androidx.compose.material.icons.filled.Garage
+import androidx.compose.material.icons.filled.DoorFront
+import androidx.compose.material.icons.filled.Window
+import androidx.compose.material.icons.filled.Roofing
+import androidx.compose.material.icons.filled.Plumbing
+import androidx.compose.material.icons.filled.ElectricalServices
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.SentimentSatisfied
+import androidx.compose.material.icons.filled.Mood
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.EmojiPeople
+import androidx.compose.material.icons.filled.Accessibility
+import androidx.compose.material.icons.filled.Recycling
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.Discount
+import androidx.compose.material.icons.filled.Paid
+import androidx.compose.material.icons.filled.Toll
+import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.Euro
+import androidx.compose.material.icons.filled.CurrencyBitcoin
+import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material.icons.filled.Coronavirus
+import androidx.compose.material.icons.filled.EmojiSymbols
+import androidx.compose.material.icons.filled.Interests
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.BubbleChart
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Stars
+import androidx.compose.material.icons.filled.Nightlife
+import androidx.compose.ui.graphics.vector.ImageVector
+
+/** One selectable tag glyph: a stable [id] (searchable, persisted) plus its Material [image]. */
+data class TagIcon(val id: String, val image: ImageVector)
+
+/**
+ * Curated catalogue of 250+ Material glyphs a user can pin to a tag so it stands out in the sidebar
+ * ("Tags that pop"). The [id] is what gets persisted in settings; it is also the search key.
+ */
+val TAG_ICONS: List<TagIcon> = listOf(
+    TagIcon("rocket", Icons.Filled.Rocket),
+    TagIcon("work", Icons.Filled.Work),
+    TagIcon("business", Icons.Filled.Business),
+    TagIcon("cases", Icons.Filled.Cases),
+    TagIcon("badge", Icons.Filled.Badge),
+    TagIcon("meeting-room", Icons.Filled.MeetingRoom),
+    TagIcon("apartment", Icons.Filled.Apartment),
+    TagIcon("domain", Icons.Filled.Domain),
+    TagIcon("store", Icons.Filled.Store),
+    TagIcon("storefront", Icons.Filled.Storefront),
+    TagIcon("shopping-cart", Icons.Filled.ShoppingCart),
+    TagIcon("shopping-bag", Icons.Filled.ShoppingBag),
+    TagIcon("shopping-basket", Icons.Filled.ShoppingBasket),
+    TagIcon("receipt", Icons.Filled.Receipt),
+    TagIcon("credit-card", Icons.Filled.CreditCard),
+    TagIcon("attach-money", Icons.Filled.AttachMoney),
+    TagIcon("payments", Icons.Filled.Payments),
+    TagIcon("savings", Icons.Filled.Savings),
+    TagIcon("account-balance", Icons.Filled.AccountBalance),
+    TagIcon("account-balance-wallet", Icons.Filled.AccountBalanceWallet),
+    TagIcon("trending-up", Icons.Filled.TrendingUp),
+    TagIcon("bar-chart", Icons.Filled.BarChart),
+    TagIcon("show-chart", Icons.Filled.ShowChart),
+    TagIcon("pie-chart", Icons.Filled.PieChart),
+    TagIcon("analytics", Icons.Filled.Analytics),
+    TagIcon("assessment", Icons.Filled.Assessment),
+    TagIcon("calculate", Icons.Filled.Calculate),
+    TagIcon("description", Icons.Filled.Description),
+    TagIcon("article", Icons.Filled.Article),
+    TagIcon("note", Icons.Filled.Note),
+    TagIcon("sticky-note2", Icons.Filled.StickyNote2),
+    TagIcon("notes", Icons.Filled.Notes),
+    TagIcon("assignment", Icons.Filled.Assignment),
+    TagIcon("task", Icons.Filled.Task),
+    TagIcon("fact-check", Icons.Filled.FactCheck),
+    TagIcon("checklist", Icons.Filled.Checklist),
+    TagIcon("list-alt", Icons.Filled.ListAlt),
+    TagIcon("event", Icons.Filled.Event),
+    TagIcon("calendar-today", Icons.Filled.CalendarToday),
+    TagIcon("calendar-month", Icons.Filled.CalendarMonth),
+    TagIcon("date-range", Icons.Filled.DateRange),
+    TagIcon("schedule", Icons.Filled.Schedule),
+    TagIcon("today", Icons.Filled.Today),
+    TagIcon("alarm", Icons.Filled.Alarm),
+    TagIcon("timer", Icons.Filled.Timer),
+    TagIcon("hourglass-empty", Icons.Filled.HourglassEmpty),
+    TagIcon("access-time", Icons.Filled.AccessTime),
+    TagIcon("watch-later", Icons.Filled.WatchLater),
+    TagIcon("email", Icons.Filled.Email),
+    TagIcon("mail", Icons.Filled.Mail),
+    TagIcon("inbox", Icons.Filled.Inbox),
+    TagIcon("send", Icons.Filled.Send),
+    TagIcon("chat", Icons.Filled.Chat),
+    TagIcon("chat-bubble", Icons.Filled.ChatBubble),
+    TagIcon("forum", Icons.Filled.Forum),
+    TagIcon("comment", Icons.Filled.Comment),
+    TagIcon("message", Icons.Filled.Message),
+    TagIcon("sms", Icons.Filled.Sms),
+    TagIcon("call", Icons.Filled.Call),
+    TagIcon("phone", Icons.Filled.Phone),
+    TagIcon("phone-in-talk", Icons.Filled.PhoneInTalk),
+    TagIcon("contacts", Icons.Filled.Contacts),
+    TagIcon("contact-mail", Icons.Filled.ContactMail),
+    TagIcon("group", Icons.Filled.Group),
+    TagIcon("groups", Icons.Filled.Groups),
+    TagIcon("person", Icons.Filled.Person),
+    TagIcon("person-outline", Icons.Filled.PersonOutline),
+    TagIcon("people", Icons.Filled.People),
+    TagIcon("diversity3", Icons.Filled.Diversity3),
+    TagIcon("support-agent", Icons.Filled.SupportAgent),
+    TagIcon("campaign", Icons.Filled.Campaign),
+    TagIcon("notifications", Icons.Filled.Notifications),
+    TagIcon("notifications-active", Icons.Filled.NotificationsActive),
+    TagIcon("announcement", Icons.Filled.Announcement),
+    TagIcon("code", Icons.Filled.Code),
+    TagIcon("terminal", Icons.Filled.Terminal),
+    TagIcon("data-object", Icons.Filled.DataObject),
+    TagIcon("data-array", Icons.Filled.DataArray),
+    TagIcon("tag", Icons.Filled.Tag),
+    TagIcon("numbers", Icons.Filled.Numbers),
+    TagIcon("memory", Icons.Filled.Memory),
+    TagIcon("storage", Icons.Filled.Storage),
+    TagIcon("dns", Icons.Filled.Dns),
+    TagIcon("cloud", Icons.Filled.Cloud),
+    TagIcon("cloud-upload", Icons.Filled.CloudUpload),
+    TagIcon("cloud-download", Icons.Filled.CloudDownload),
+    TagIcon("cloud-queue", Icons.Filled.CloudQueue),
+    TagIcon("wifi", Icons.Filled.Wifi),
+    TagIcon("bluetooth", Icons.Filled.Bluetooth),
+    TagIcon("router", Icons.Filled.Router),
+    TagIcon("lan", Icons.Filled.Lan),
+    TagIcon("hub", Icons.Filled.Hub),
+    TagIcon("device-hub", Icons.Filled.DeviceHub),
+    TagIcon("api", Icons.Filled.Api),
+    TagIcon("webhook", Icons.Filled.Webhook),
+    TagIcon("bug-report", Icons.Filled.BugReport),
+    TagIcon("build", Icons.Filled.Build),
+    TagIcon("construction", Icons.Filled.Construction),
+    TagIcon("handyman", Icons.Filled.Handyman),
+    TagIcon("settings", Icons.Filled.Settings),
+    TagIcon("tune", Icons.Filled.Tune),
+    TagIcon("extension", Icons.Filled.Extension),
+    TagIcon("widgets", Icons.Filled.Widgets),
+    TagIcon("apps", Icons.Filled.Apps),
+    TagIcon("grid-view", Icons.Filled.GridView),
+    TagIcon("view-module", Icons.Filled.ViewModule),
+    TagIcon("dashboard", Icons.Filled.Dashboard),
+    TagIcon("space-dashboard", Icons.Filled.SpaceDashboard),
+    TagIcon("developer-mode", Icons.Filled.DeveloperMode),
+    TagIcon("integration-instructions", Icons.Filled.IntegrationInstructions),
+    TagIcon("html", Icons.Filled.Html),
+    TagIcon("css", Icons.Filled.Css),
+    TagIcon("javascript", Icons.Filled.Javascript),
+    TagIcon("php", Icons.Filled.Php),
+    TagIcon("data-thresholding", Icons.Filled.DataThresholding),
+    TagIcon("computer", Icons.Filled.Computer),
+    TagIcon("laptop", Icons.Filled.Laptop),
+    TagIcon("desktop-windows", Icons.Filled.DesktopWindows),
+    TagIcon("phone-android", Icons.Filled.PhoneAndroid),
+    TagIcon("phone-iphone", Icons.Filled.PhoneIphone),
+    TagIcon("tablet", Icons.Filled.Tablet),
+    TagIcon("tablet-mac", Icons.Filled.TabletMac),
+    TagIcon("watch", Icons.Filled.Watch),
+    TagIcon("tv", Icons.Filled.Tv),
+    TagIcon("keyboard", Icons.Filled.Keyboard),
+    TagIcon("mouse", Icons.Filled.Mouse),
+    TagIcon("headphones", Icons.Filled.Headphones),
+    TagIcon("headset", Icons.Filled.Headset),
+    TagIcon("speaker", Icons.Filled.Speaker),
+    TagIcon("print", Icons.Filled.Print),
+    TagIcon("scanner", Icons.Filled.Scanner),
+    TagIcon("camera-alt", Icons.Filled.CameraAlt),
+    TagIcon("photo-camera", Icons.Filled.PhotoCamera),
+    TagIcon("videocam", Icons.Filled.Videocam),
+    TagIcon("mic", Icons.Filled.Mic),
+    TagIcon("battery-full", Icons.Filled.BatteryFull),
+    TagIcon("power", Icons.Filled.Power),
+    TagIcon("power-settings-new", Icons.Filled.PowerSettingsNew),
+    TagIcon("cable", Icons.Filled.Cable),
+    TagIcon("usb", Icons.Filled.Usb),
+    TagIcon("sd-card", Icons.Filled.SdCard),
+    TagIcon("sim-card", Icons.Filled.SimCard),
+    TagIcon("folder", Icons.Filled.Folder),
+    TagIcon("folder-open", Icons.Filled.FolderOpen),
+    TagIcon("folder-special", Icons.Filled.FolderSpecial),
+    TagIcon("create-new-folder", Icons.Filled.CreateNewFolder),
+    TagIcon("topic", Icons.Filled.Topic),
+    TagIcon("insert-drive-file", Icons.Filled.InsertDriveFile),
+    TagIcon("attach-file", Icons.Filled.AttachFile),
+    TagIcon("attachment", Icons.Filled.Attachment),
+    TagIcon("link", Icons.Filled.Link),
+    TagIcon("bookmark", Icons.Filled.Bookmark),
+    TagIcon("bookmarks", Icons.Filled.Bookmarks),
+    TagIcon("label", Icons.Filled.Label),
+    TagIcon("label-important", Icons.Filled.LabelImportant),
+    TagIcon("flag", Icons.Filled.Flag),
+    TagIcon("star", Icons.Filled.Star),
+    TagIcon("star-border", Icons.Filled.StarBorder),
+    TagIcon("star-half", Icons.Filled.StarHalf),
+    TagIcon("grade", Icons.Filled.Grade),
+    TagIcon("favorite", Icons.Filled.Favorite),
+    TagIcon("favorite-border", Icons.Filled.FavoriteBorder),
+    TagIcon("thumb-up", Icons.Filled.ThumbUp),
+    TagIcon("thumb-down", Icons.Filled.ThumbDown),
+    TagIcon("push-pin", Icons.Filled.PushPin),
+    TagIcon("lock", Icons.Filled.Lock),
+    TagIcon("lock-open", Icons.Filled.LockOpen),
+    TagIcon("key", Icons.Filled.Key),
+    TagIcon("vpn-key", Icons.Filled.VpnKey),
+    TagIcon("shield", Icons.Filled.Shield),
+    TagIcon("security", Icons.Filled.Security),
+    TagIcon("verified-user", Icons.Filled.VerifiedUser),
+    TagIcon("verified", Icons.Filled.Verified),
+    TagIcon("gpp-good", Icons.Filled.GppGood),
+    TagIcon("admin-panel-settings", Icons.Filled.AdminPanelSettings),
+    TagIcon("visibility", Icons.Filled.Visibility),
+    TagIcon("visibility-off", Icons.Filled.VisibilityOff),
+    TagIcon("search", Icons.Filled.Search),
+    TagIcon("filter-list", Icons.Filled.FilterList),
+    TagIcon("sort", Icons.Filled.Sort),
+    TagIcon("category", Icons.Filled.Category),
+    TagIcon("wb-sunny", Icons.Filled.WbSunny),
+    TagIcon("brightness5", Icons.Filled.Brightness5),
+    TagIcon("nightlight-round", Icons.Filled.NightlightRound),
+    TagIcon("dark-mode", Icons.Filled.DarkMode),
+    TagIcon("light-mode", Icons.Filled.LightMode),
+    TagIcon("thunderstorm", Icons.Filled.Thunderstorm),
+    TagIcon("bolt", Icons.Filled.Bolt),
+    TagIcon("ac-unit", Icons.Filled.AcUnit),
+    TagIcon("umbrella", Icons.Filled.Umbrella),
+    TagIcon("air", Icons.Filled.Air),
+    TagIcon("water", Icons.Filled.Water),
+    TagIcon("water-drop", Icons.Filled.WaterDrop),
+    TagIcon("waves", Icons.Filled.Waves),
+    TagIcon("park", Icons.Filled.Park),
+    TagIcon("forest", Icons.Filled.Forest),
+    TagIcon("grass", Icons.Filled.Grass),
+    TagIcon("yard", Icons.Filled.Yard),
+    TagIcon("local-florist", Icons.Filled.LocalFlorist),
+    TagIcon("spa", Icons.Filled.Spa),
+    TagIcon("eco", Icons.Filled.Eco),
+    TagIcon("compost", Icons.Filled.Compost),
+    TagIcon("pets", Icons.Filled.Pets),
+    TagIcon("cruelty-free", Icons.Filled.CrueltyFree),
+    TagIcon("emoji-nature", Icons.Filled.EmojiNature),
+    TagIcon("terrain", Icons.Filled.Terrain),
+    TagIcon("landscape", Icons.Filled.Landscape),
+    TagIcon("beach-access", Icons.Filled.BeachAccess),
+    TagIcon("hiking", Icons.Filled.Hiking),
+    TagIcon("restaurant", Icons.Filled.Restaurant),
+    TagIcon("restaurant-menu", Icons.Filled.RestaurantMenu),
+    TagIcon("local-cafe", Icons.Filled.LocalCafe),
+    TagIcon("coffee", Icons.Filled.Coffee),
+    TagIcon("local-bar", Icons.Filled.LocalBar),
+    TagIcon("wine-bar", Icons.Filled.WineBar),
+    TagIcon("local-pizza", Icons.Filled.LocalPizza),
+    TagIcon("fastfood", Icons.Filled.Fastfood),
+    TagIcon("lunch-dining", Icons.Filled.LunchDining),
+    TagIcon("dinner-dining", Icons.Filled.DinnerDining),
+    TagIcon("breakfast-dining", Icons.Filled.BreakfastDining),
+    TagIcon("bakery-dining", Icons.Filled.BakeryDining),
+    TagIcon("icecream", Icons.Filled.Icecream),
+    TagIcon("cake", Icons.Filled.Cake),
+    TagIcon("cookie", Icons.Filled.Cookie),
+    TagIcon("emoji-food-beverage", Icons.Filled.EmojiFoodBeverage),
+    TagIcon("ramen-dining", Icons.Filled.RamenDining),
+    TagIcon("rice-bowl", Icons.Filled.RiceBowl),
+    TagIcon("set-meal", Icons.Filled.SetMeal),
+    TagIcon("tapas", Icons.Filled.Tapas),
+    TagIcon("liquor", Icons.Filled.Liquor),
+    TagIcon("local-drink", Icons.Filled.LocalDrink),
+    TagIcon("kitchen", Icons.Filled.Kitchen),
+    TagIcon("blender", Icons.Filled.Blender),
+    TagIcon("microwave", Icons.Filled.Microwave),
+    TagIcon("flight", Icons.Filled.Flight),
+    TagIcon("flight-takeoff", Icons.Filled.FlightTakeoff),
+    TagIcon("flight-land", Icons.Filled.FlightLand),
+    TagIcon("train", Icons.Filled.Train),
+    TagIcon("directions-car", Icons.Filled.DirectionsCar),
+    TagIcon("directions-bus", Icons.Filled.DirectionsBus),
+    TagIcon("directions-bike", Icons.Filled.DirectionsBike),
+    TagIcon("directions-walk", Icons.Filled.DirectionsWalk),
+    TagIcon("two-wheeler", Icons.Filled.TwoWheeler),
+    TagIcon("electric-car", Icons.Filled.ElectricCar),
+    TagIcon("local-taxi", Icons.Filled.LocalTaxi),
+    TagIcon("sailing", Icons.Filled.Sailing),
+    TagIcon("directions-boat", Icons.Filled.DirectionsBoat),
+    TagIcon("subway", Icons.Filled.Subway),
+    TagIcon("tram", Icons.Filled.Tram),
+    TagIcon("map", Icons.Filled.Map),
+    TagIcon("place", Icons.Filled.Place),
+    TagIcon("location-on", Icons.Filled.LocationOn),
+    TagIcon("my-location", Icons.Filled.MyLocation),
+    TagIcon("explore", Icons.Filled.Explore),
+    TagIcon("navigation", Icons.Filled.Navigation),
+    TagIcon("public", Icons.Filled.Public),
+    TagIcon("language", Icons.Filled.Language),
+    TagIcon("hotel", Icons.Filled.Hotel),
+    TagIcon("luggage", Icons.Filled.Luggage),
+    TagIcon("backpack", Icons.Filled.Backpack),
+    TagIcon("festival", Icons.Filled.Festival),
+    TagIcon("attractions", Icons.Filled.Attractions),
+    TagIcon("museum", Icons.Filled.Museum),
+    TagIcon("temple-buddhist", Icons.Filled.TempleBuddhist),
+    TagIcon("church", Icons.Filled.Church),
+    TagIcon("castle", Icons.Filled.Castle),
+    TagIcon("sports-esports", Icons.Filled.SportsEsports),
+    TagIcon("sports-basketball", Icons.Filled.SportsBasketball),
+    TagIcon("sports-soccer", Icons.Filled.SportsSoccer),
+    TagIcon("sports-tennis", Icons.Filled.SportsTennis),
+    TagIcon("sports-baseball", Icons.Filled.SportsBaseball),
+    TagIcon("sports-football", Icons.Filled.SportsFootball),
+    TagIcon("sports-cricket", Icons.Filled.SportsCricket),
+    TagIcon("sports-golf", Icons.Filled.SportsGolf),
+    TagIcon("sports-mma", Icons.Filled.SportsMma),
+    TagIcon("fitness-center", Icons.Filled.FitnessCenter),
+    TagIcon("self-improvement", Icons.Filled.SelfImprovement),
+    TagIcon("pool", Icons.Filled.Pool),
+    TagIcon("directions-run", Icons.Filled.DirectionsRun),
+    TagIcon("downhill-skiing", Icons.Filled.DownhillSkiing),
+    TagIcon("snowboarding", Icons.Filled.Snowboarding),
+    TagIcon("skateboarding", Icons.Filled.Skateboarding),
+    TagIcon("surfing", Icons.Filled.Surfing),
+    TagIcon("casino", Icons.Filled.Casino),
+    TagIcon("music-note", Icons.Filled.MusicNote),
+    TagIcon("library-music", Icons.Filled.LibraryMusic),
+    TagIcon("album", Icons.Filled.Album),
+    TagIcon("piano", Icons.Filled.Piano),
+    TagIcon("queue-music", Icons.Filled.QueueMusic),
+    TagIcon("radio", Icons.Filled.Radio),
+    TagIcon("movie", Icons.Filled.Movie),
+    TagIcon("theaters", Icons.Filled.Theaters),
+    TagIcon("live-tv", Icons.Filled.LiveTv),
+    TagIcon("videogame-asset", Icons.Filled.VideogameAsset),
+    TagIcon("brush", Icons.Filled.Brush),
+    TagIcon("palette", Icons.Filled.Palette),
+    TagIcon("color-lens", Icons.Filled.ColorLens),
+    TagIcon("draw", Icons.Filled.Draw),
+    TagIcon("edit", Icons.Filled.Edit),
+    TagIcon("create", Icons.Filled.Create),
+    TagIcon("design-services", Icons.Filled.DesignServices),
+    TagIcon("collections", Icons.Filled.Collections),
+    TagIcon("image", Icons.Filled.Image),
+    TagIcon("menu-book", Icons.Filled.MenuBook),
+    TagIcon("book", Icons.Filled.Book),
+    TagIcon("auto-stories", Icons.Filled.AutoStories),
+    TagIcon("import-contacts", Icons.Filled.ImportContacts),
+    TagIcon("school", Icons.Filled.School),
+    TagIcon("science", Icons.Filled.Science),
+    TagIcon("biotech", Icons.Filled.Biotech),
+    TagIcon("psychology", Icons.Filled.Psychology),
+    TagIcon("functions", Icons.Filled.Functions),
+    TagIcon("lightbulb", Icons.Filled.Lightbulb),
+    TagIcon("tips-and-updates", Icons.Filled.TipsAndUpdates),
+    TagIcon("emoji-objects", Icons.Filled.EmojiObjects),
+    TagIcon("whatshot", Icons.Filled.Whatshot),
+    TagIcon("local-fire-department", Icons.Filled.LocalFireDepartment),
+    TagIcon("celebration", Icons.Filled.Celebration),
+    TagIcon("emoji-events", Icons.Filled.EmojiEvents),
+    TagIcon("military-tech", Icons.Filled.MilitaryTech),
+    TagIcon("workspace-premium", Icons.Filled.WorkspacePremium),
+    TagIcon("card-giftcard", Icons.Filled.CardGiftcard),
+    TagIcon("redeem", Icons.Filled.Redeem),
+    TagIcon("loyalty", Icons.Filled.Loyalty),
+    TagIcon("monitor-heart", Icons.Filled.MonitorHeart),
+    TagIcon("healing", Icons.Filled.Healing),
+    TagIcon("medical-services", Icons.Filled.MedicalServices),
+    TagIcon("local-hospital", Icons.Filled.LocalHospital),
+    TagIcon("medication", Icons.Filled.Medication),
+    TagIcon("vaccines", Icons.Filled.Vaccines),
+    TagIcon("bloodtype", Icons.Filled.Bloodtype),
+    TagIcon("home", Icons.Filled.Home),
+    TagIcon("house", Icons.Filled.House),
+    TagIcon("cottage", Icons.Filled.Cottage),
+    TagIcon("villa", Icons.Filled.Villa),
+    TagIcon("bed", Icons.Filled.Bed),
+    TagIcon("bathtub", Icons.Filled.Bathtub),
+    TagIcon("chair", Icons.Filled.Chair),
+    TagIcon("weekend", Icons.Filled.Weekend),
+    TagIcon("local-laundry-service", Icons.Filled.LocalLaundryService),
+    TagIcon("cleaning-services", Icons.Filled.CleaningServices),
+    TagIcon("deck", Icons.Filled.Deck),
+    TagIcon("fireplace", Icons.Filled.Fireplace),
+    TagIcon("garage", Icons.Filled.Garage),
+    TagIcon("door-front", Icons.Filled.DoorFront),
+    TagIcon("window", Icons.Filled.Window),
+    TagIcon("roofing", Icons.Filled.Roofing),
+    TagIcon("plumbing", Icons.Filled.Plumbing),
+    TagIcon("electrical-services", Icons.Filled.ElectricalServices),
+    TagIcon("emoji-emotions", Icons.Filled.EmojiEmotions),
+    TagIcon("sentiment-satisfied", Icons.Filled.SentimentSatisfied),
+    TagIcon("mood", Icons.Filled.Mood),
+    TagIcon("face", Icons.Filled.Face),
+    TagIcon("emoji-people", Icons.Filled.EmojiPeople),
+    TagIcon("accessibility", Icons.Filled.Accessibility),
+    TagIcon("recycling", Icons.Filled.Recycling),
+    TagIcon("archive", Icons.Filled.Archive),
+    TagIcon("inventory", Icons.Filled.Inventory),
+    TagIcon("inventory2", Icons.Filled.Inventory2),
+    TagIcon("local-shipping", Icons.Filled.LocalShipping),
+    TagIcon("sell", Icons.Filled.Sell),
+    TagIcon("discount", Icons.Filled.Discount),
+    TagIcon("paid", Icons.Filled.Paid),
+    TagIcon("toll", Icons.Filled.Toll),
+    TagIcon("monetization-on", Icons.Filled.MonetizationOn),
+    TagIcon("euro", Icons.Filled.Euro),
+    TagIcon("currency-bitcoin", Icons.Filled.CurrencyBitcoin),
+    TagIcon("diamond", Icons.Filled.Diamond),
+    TagIcon("coronavirus", Icons.Filled.Coronavirus),
+    TagIcon("emoji-symbols", Icons.Filled.EmojiSymbols),
+    TagIcon("interests", Icons.Filled.Interests),
+    TagIcon("layers", Icons.Filled.Layers),
+    TagIcon("bubble-chart", Icons.Filled.BubbleChart),
+    TagIcon("auto-awesome", Icons.Filled.AutoAwesome),
+    TagIcon("stars", Icons.Filled.Stars),
+    TagIcon("nightlife", Icons.Filled.Nightlife),
+)
+
+private val TAG_ICON_BY_ID: Map<String, ImageVector> = TAG_ICONS.associate { it.id to it.image }
+
+/** All catalogue ids in display order (used by the icon picker's pure search). */
+val TAG_ICON_IDS: List<String> = TAG_ICONS.map { it.id }
+
+/** Resolves a persisted icon id back to its vector, or null when unset/unknown. */
+fun tagIconById(id: String?): ImageVector? = id?.let { TAG_ICON_BY_ID[it] }
