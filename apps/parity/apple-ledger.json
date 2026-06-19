@@ -144,10 +144,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "pending",
+      "status": "deferred",
       "attempts": 0,
       "acceptance": "HttpClientFactory builds a working client on Apple targets using the Darwin engine (desktop uses CIO). Sync/OAuth Ktor calls compile and run on iOS/macOS.",
-      "notes": "Check commonMain/auth/HttpClientFactory.kt for how the engine is selected. Provide an appleMain engine (io.ktor:ktor-client-darwin)."
+      "notes": "Check commonMain/auth/HttpClientFactory.kt for how the engine is selected. Provide an appleMain engine (io.ktor:ktor-client-darwin).",
+      "result_note": "ktor-client-darwin added to iosMain; HttpClientFactory auto-selects engine. Needs iOS build to verify.",
+      "updated": "2026-06-19T07:03:27Z"
     },
     {
       "id": "actual-noteexport-apple",
