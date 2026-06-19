@@ -29,10 +29,12 @@
         "macos"
       ],
       "deps": [],
-      "status": "pending",
+      "status": "done",
       "attempts": 0,
       "acceptance": "Report which of: full Xcode, JDK 21, iOS simulator, CocoaPods are present. If Xcode/simulator absent, note that iOS build/run units must be deferred. This unit is informational and never blocks others.",
-      "notes": "Run: xcodebuild -version; /usr/libexec/java_home -V; xcrun simctl list devices available; pod --version. Mark done if it reports cleanly even when tools are missing."
+      "notes": "Run: xcodebuild -version; /usr/libexec/java_home -V; xcrun simctl list devices available; pod --version. Mark done if it reports cleanly even when tools are missing.",
+      "result_note": "JDK21 installed; desktopTest green. No Xcode/simctl/CocoaPods -> iOS build/run units will defer.",
+      "updated": "2026-06-19T06:44:10Z"
     },
     {
       "id": "gradle-apple-targets",
@@ -43,10 +45,12 @@
         "macos"
       ],
       "deps": [],
-      "status": "pending",
+      "status": "done",
       "attempts": 0,
       "acceptance": "composeApp/build.gradle.kts declares iosX64/iosArm64/iosSimulatorArm64 (binaries.framework baseName=\"ComposeApp\", isStatic=true). Add appleMain (parent of iosMain) source set hierarchy and a Darwin Ktor engine dep (ktor-client-darwin) for iosMain. Optionally add macosArm64/macosX64 behind evaluation. Add jvmToolchain(21) if the desktop build needs it. `./gradlew :composeApp:help` succeeds. iOS framework-link verification may be deferred if Xcode is missing.",
-      "notes": "Add ktor-client-darwin to libs.versions.toml. appleMain depends on commonMain; iosMain/macosMain depend on appleMain. Do NOT remove the desktop target. Keep desktop build green."
+      "notes": "Add ktor-client-darwin to libs.versions.toml. appleMain depends on commonMain; iosMain/macosMain depend on appleMain. Do NOT remove the desktop target. Keep desktop build green.",
+      "result_note": "iOS targets (x64/arm64/sim) + ktor-darwin added; :composeApp:help config verified. Desktop build unaffected.",
+      "updated": "2026-06-19T06:46:32Z"
     },
     {
       "id": "ios-app-shell",
@@ -624,5 +628,6 @@
       "acceptance": "A GitHub Actions workflow on a macos runner builds the Apple targets and runs shared tests. Skip/defer if the user does not want CI.",
       "notes": "Use macos-latest, JDK 21, Xcode select; cache Gradle + konan."
     }
-  ]
+  ],
+  "updated": "2026-06-19T06:46:32Z"
 }
