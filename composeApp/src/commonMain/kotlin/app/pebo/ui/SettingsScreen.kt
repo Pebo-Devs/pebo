@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.pebo.platform.folderPickerSupported
 import app.pebo.platform.pickFolder
 import app.pebo.ui.theme.PeboPalette
 import app.pebo.ui.theme.Palettes
@@ -501,23 +502,29 @@ private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
                 )
             }
             Spacer(Modifier.width(12.dp))
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(scheme.primary.copy(alpha = 0.12f))
-                    .border(1.dp, scheme.primary.copy(alpha = 0.45f), RoundedCornerShape(9.dp))
-                    .clickable {
-                        val picked = pickFolder("Choose your Pebo notes folder", vm.notesDir.ifBlank { dataDir })
-                        if (!picked.isNullOrBlank()) vm.changeNotesDir(picked)
-                    }
-                    .padding(horizontal = 15.dp, vertical = 9.dp),
-            ) {
-                Text("Change…", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = scheme.primary)
+            if (folderPickerSupported()) {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(scheme.primary.copy(alpha = 0.12f))
+                        .border(1.dp, scheme.primary.copy(alpha = 0.45f), RoundedCornerShape(9.dp))
+                        .clickable {
+                            val picked = pickFolder("Choose your Pebo notes folder", vm.notesDir.ifBlank { dataDir })
+                            if (!picked.isNullOrBlank()) vm.changeNotesDir(picked)
+                        }
+                        .padding(horizontal = 15.dp, vertical = 9.dp),
+                ) {
+                    Text("Change…", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = scheme.primary)
+                }
             }
         }
         Spacer(Modifier.height(11.dp))
         Text(
-            "Pick any folder on this device — your notes/ and .trash/ live inside it as portable .md files you fully own. Switching folders reloads the workspace instantly.",
+            if (folderPickerSupported()) {
+                "Pick any folder on this device — your notes/ and .trash/ live inside it as portable .md files you fully own. Switching folders reloads the workspace instantly."
+            } else {
+                "On this device, your notes/ and .trash/ live as portable .md files inside the app's Documents folder, shown above."
+            },
             style = MaterialTheme.typography.bodySmall,
             color = scheme.onSurfaceVariant.copy(alpha = 0.82f),
         )

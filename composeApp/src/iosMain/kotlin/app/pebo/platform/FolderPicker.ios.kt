@@ -10,3 +10,6 @@ package app.pebo.platform
  * shared `pickFolder` contract suspendable.
  */
 actual fun pickFolder(title: String, initialPath: String?): String? = null
+
+/** iOS keeps notes in the app's sandboxed Documents directory, so there is no folder chooser. */
+actual fun folderPickerSupported(): Boolean = false
