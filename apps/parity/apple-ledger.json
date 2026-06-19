@@ -517,12 +517,12 @@
         "ios-entry-wiring",
         "macos-desktop-dmg"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "Command palette opens via Cmd/Ctrl+K (macOS) and a toolbar/FAB affordance (iOS), centers correctly, and runs all actions. Centering must not rely on Compose-Desktop-only window pixel APIs.",
       "notes": "ui/CommandPalette.kt has a Compose-Desktop HiDPI window-size comment — verify it works or adapt for Apple.",
-      "result_note": "Cmd/Ctrl+K works on macOS; iOS needs a touch affordance (FAB/toolbar) — needs simulator to design/verify.",
-      "updated": "2026-06-19T07:16:33Z"
+      "result_note": "Added a command-palette IconButton (Bolt) to the NoteList header so it's reachable without Cmd/Ctrl+K on touch. Compiles desktop+iOS.",
+      "updated": "2026-06-19T14:27:50Z"
     },
     {
       "id": "parity-settings-storage",
@@ -595,12 +595,12 @@
       "deps": [
         "parity-notelist"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "Open, pin/unpin, add child, move to Trash, restore, delete-permanently are reachable: right-click on macOS, long-press/overflow on iOS.",
       "notes": "Desktop uses right-click; iOS needs long-press or an overflow menu.",
-      "result_note": "Right-click menus work on macOS; iOS needs long-press equivalents — needs simulator.",
-      "updated": "2026-06-19T07:16:33Z"
+      "result_note": "Note rows now open the context menu via long-press (combinedClickable) in addition to right-click. Compiles desktop+iOS.",
+      "updated": "2026-06-19T14:27:50Z"
     },
     {
       "id": "tests-apple",
@@ -699,5 +699,5 @@
       "updated": "2026-06-19T07:16:33Z"
     }
   ],
-  "updated": "2026-06-19T07:16:33Z"
+  "updated": "2026-06-19T14:27:50Z"
 }

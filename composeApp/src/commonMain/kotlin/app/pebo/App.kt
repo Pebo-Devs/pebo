@@ -97,7 +97,7 @@ fun App(vm: NotesViewModel, dataDir: String) {
                             if (!vm.focusMode) {
                                 Sidebar(vm, Modifier.width(252.dp))
                                 VPaneDivider()
-                                NoteList(vm, Modifier.width(368.dp))
+                                NoteList(vm, Modifier.width(368.dp), onOpenCommandPalette = { paletteOpen = true })
                                 VPaneDivider()
                             }
                             if (vm.focusMode) {
@@ -109,7 +109,7 @@ fun App(vm: NotesViewModel, dataDir: String) {
                             }
                         }
                     } else {
-                        CompactLayout(vm)
+                        CompactLayout(vm, onOpenCommandPalette = { paletteOpen = true })
                     }
                 }
             }
@@ -122,7 +122,7 @@ fun App(vm: NotesViewModel, dataDir: String) {
 }
 
 @Composable
-private fun CompactLayout(vm: NotesViewModel) {
+private fun CompactLayout(vm: NotesViewModel, onOpenCommandPalette: () -> Unit) {
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     ModalNavigationDrawer(
@@ -136,7 +136,11 @@ private fun CompactLayout(vm: NotesViewModel) {
         if (vm.selectedNote != null) {
             Editor(vm, onBack = { vm.select(null) })
         } else {
-            NoteList(vm, onMenu = { scope.launch { drawer.open() } })
+            NoteList(
+                vm,
+                onMenu = { scope.launch { drawer.open() } },
+                onOpenCommandPalette = onOpenCommandPalette,
+            )
         }
     }
 }
