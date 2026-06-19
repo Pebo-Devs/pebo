@@ -629,10 +629,12 @@
         "build-ios-sim",
         "build-macos"
       ],
-      "status": "pending",
+      "status": "done",
       "attempts": 0,
       "acceptance": "README reflects iOS + macOS targets: badges, prerequisites (Xcode, JDK 21), run/build instructions (iosApp scheme, gradle tasks), and updated project structure (appleMain/iosMain/iosApp).",
-      "notes": "Roadmap already promises native iOS/macOS; move them to Features and document how to run."
+      "notes": "Roadmap already promises native iOS/macOS; move them to Features and document how to run.",
+      "result_note": "README updated: iOS badge, prerequisites (Xcode/JDK21), iOS run steps, macOS packaging note, project structure (iosMain/iosApp/apps/parity), roadmap.",
+      "updated": "2026-06-19T07:16:33Z"
     },
     {
       "id": "ci-apple",
@@ -651,5 +653,5 @@
       "notes": "Use macos-latest, JDK 21, Xcode select; cache Gradle + konan."
     }
   ],
-  "updated": "2026-06-19T07:14:44Z"
+  "updated": "2026-06-19T07:16:33Z"
 }
