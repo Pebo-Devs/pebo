@@ -12,6 +12,11 @@ import okio.Path
  * Stores notes as individual `.md` files under [baseDir]`/notes`, with trashed notes moved to
  * [baseDir]`/.trash`. Writes are atomic (temp file + rename). Identity is the frontmatter `id`;
  * filenames are title slugs and are never auto-renamed once created.
+ *
+ * To make the app friendly to point at an existing pile of Markdown, [load] also **adopts** any
+ * `.md` files the user already had directly in [baseDir] (not just inside `notes/`). Adopted files
+ * are shown as notes and edited in place — Pebo never moves them into `notes/` behind the user's
+ * back. On an `id` collision a file under `notes/` wins, so Pebo's own notes always take precedence.
  */
 class LocalNoteStore(
     private val fs: FileSystem,
@@ -33,7 +38,10 @@ class LocalNoteStore(
         ensureDirs()
         activePaths.clear()
         trashPaths.clear()
-        val active = readDir(notesDir, trashed = false, into = activePaths)
+        // Read Pebo's own notes/ first, then adopt any pre-existing .md sitting directly in the
+        // chosen folder, so an existing folder of Markdown never shows up empty. notes/ wins on id.
+        val active = readDir(notesDir, trashed = false, into = activePaths) +
+            readDir(baseDir, trashed = false, into = activePaths)
         val trashed = readDir(trashDir, trashed = true, into = trashPaths)
         StoreSnapshot(
             active = active.sortedWith(noteOrder),
@@ -49,6 +57,7 @@ class LocalNoteStore(
             if (fs.metadataOrNull(path)?.isRegularFile != true) continue
             val text = fs.read(path) { readUtf8() }
             val note = NoteFile.parse(text, fallbackId = path.name.removeSuffix(".md"), trashed = trashed)
+            if (into.containsKey(note.id)) continue // first occurrence wins (dedupe across notes/ + baseDir)
             into[note.id] = path
             notes.add(note)
         }
