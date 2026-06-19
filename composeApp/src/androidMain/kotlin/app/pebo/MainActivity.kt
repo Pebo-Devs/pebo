@@ -16,6 +16,7 @@ import app.pebo.data.seedWelcomeNoteIfNeeded
 import app.pebo.platform.CurrentActivityHolder
 import app.pebo.platform.SafFileSystem
 import app.pebo.platform.SafFolderPicker
+import app.pebo.platform.SafDocumentSaver
 import app.pebo.ui.NotesViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         CurrentActivityHolder.set(this)
         SafFolderPicker.register(this)
+        SafDocumentSaver.register(this)
 
         val systemFs = FileSystem.SYSTEM
         // User-visible, app-owned default location (matches the desktop "~/Pebo" feel); falls back to
@@ -82,6 +84,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        SafDocumentSaver.unregister()
         SafFolderPicker.unregister()
         CurrentActivityHolder.clear(this)
         super.onDestroy()

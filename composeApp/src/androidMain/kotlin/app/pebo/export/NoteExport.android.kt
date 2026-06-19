@@ -1,6 +1,10 @@
 package app.pebo.export
 
+import android.net.Uri
 import app.pebo.platform.CurrentActivityHolder
+import app.pebo.platform.SafDocumentSaver
+import kotlinx.coroutines.runBlocking
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -9,10 +13,12 @@ import java.util.zip.ZipOutputStream
  * Android actuals for note export.
  *
  * HTML and DOCX are produced by the pure `commonMain` generators (text only); JPG/PNG/PDF are
- * rasterized through the android.graphics renderer in `MarkdownImageRenderer.android.kt`. For the
- * foundation, [pickSaveFile] writes into the app's external "exports" directory and returns a real
- * path; the `android-export-saf-share` parity unit replaces this with a Storage Access Framework
- * create-document / share flow.
+ * rasterized through the android.graphics renderer in `MarkdownImageRenderer.android.kt`.
+ *
+ * [pickSaveFile] shows the system **Save As** dialog (Storage Access Framework
+ * `ACTION_CREATE_DOCUMENT`) and returns the chosen `content://` document URI — the parity match for
+ * the desktop native save dialog. [exportNote] then writes the bytes to that URI via the
+ * [android.content.ContentResolver]; a plain filesystem path is still honoured as a fallback.
  */
 actual fun exportNote(
     format: ExportFormat,
@@ -21,47 +27,60 @@ actual fun exportNote(
     destPath: String,
     attachmentsDir: String?,
 ): Boolean = try {
-    val dest = File(destPath)
-    dest.parentFile?.mkdirs()
-    when (format) {
-        ExportFormat.Html -> {
-            dest.writeText(markdownToHtml(title, markdown), Charsets.UTF_8)
-            true
-        }
-        ExportFormat.Docx -> {
-            writeDocx(dest, markdownToWordDocumentXml(markdown))
-            true
-        }
-        ExportFormat.Jpg -> writeBytesOrFalse(dest, renderNoteToImageBytes(markdown, attachmentsDir, jpeg = true))
-        ExportFormat.Png -> writeBytesOrFalse(dest, renderNoteToImageBytes(markdown, attachmentsDir, jpeg = false))
-        ExportFormat.Pdf -> writeBytesOrFalse(dest, renderNoteToPdfBytes(markdown, attachmentsDir))
+    val bytes: ByteArray? = when (format) {
+        ExportFormat.Html -> markdownToHtml(title, markdown).toByteArray(Charsets.UTF_8)
+        ExportFormat.Docx -> docxBytes(markdownToWordDocumentXml(markdown))
+        ExportFormat.Jpg -> renderNoteToImageBytes(markdown, attachmentsDir, jpeg = true)
+        ExportFormat.Png -> renderNoteToImageBytes(markdown, attachmentsDir, jpeg = false)
+        ExportFormat.Pdf -> renderNoteToPdfBytes(markdown, attachmentsDir)
     }
+    if (bytes == null) false else writeTo(destPath, bytes)
 } catch (t: Throwable) {
     System.err.println("Export failed (${format.ext}): ${t.message}")
     false
 }
 
-private fun writeBytesOrFalse(dest: File, bytes: ByteArray?): Boolean {
-    if (bytes == null) return false
+/** Writes [bytes] to a SAF `content://` document URI (via ContentResolver) or a real file path. */
+private fun writeTo(destPath: String, bytes: ByteArray): Boolean {
+    if (destPath.startsWith("content://")) {
+        val ctx = CurrentActivityHolder.get() ?: return false
+        return ctx.contentResolver.openOutputStream(Uri.parse(destPath))?.use { out ->
+            out.write(bytes)
+            true
+        } ?: false
+    }
+    val dest = File(destPath)
+    dest.parentFile?.mkdirs()
     dest.writeBytes(bytes)
     return true
 }
 
-/** Writes a `.docx` (Office Open XML) by zipping the package parts (DEFLATED). */
-private fun writeDocx(dest: File, documentXml: String) {
-    ZipOutputStream(dest.outputStream().buffered()).use { zip ->
+/** Builds a `.docx` (Office Open XML) in memory by zipping the package parts (DEFLATED). */
+private fun docxBytes(documentXml: String): ByteArray {
+    val bos = ByteArrayOutputStream()
+    ZipOutputStream(bos).use { zip ->
         for ((path, content) in docxPackageParts(documentXml)) {
             zip.putNextEntry(ZipEntry(path))
             zip.write(content.toByteArray(Charsets.UTF_8))
             zip.closeEntry()
         }
     }
+    return bos.toByteArray()
 }
 
 actual fun pickSaveFile(title: String, defaultName: String, extension: String): String? {
-    val ctx = CurrentActivityHolder.get() ?: return null
-    val dir = File(ctx.getExternalFilesDir(null) ?: ctx.filesDir, "exports").apply { mkdirs() }
     var name = defaultName
     if (!name.endsWith(".$extension", ignoreCase = true)) name += ".$extension"
-    return File(dir, name).absolutePath
+    // Called off the UI thread (Dispatchers.Default); the SAF dialog runs on the main thread and
+    // this background thread blocks for the result, so the UI thread is never blocked (no ANR).
+    return runBlocking { SafDocumentSaver.createDocument(mimeFor(extension), name)?.toString() }
+}
+
+private fun mimeFor(extension: String): String = when (extension.lowercase()) {
+    "html" -> "text/html"
+    "pdf" -> "application/pdf"
+    "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    "jpg", "jpeg" -> "image/jpeg"
+    "png" -> "image/png"
+    else -> "*/*"
 }

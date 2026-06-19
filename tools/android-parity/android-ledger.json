@@ -128,29 +128,33 @@
       "id": "android-export-saf-share",
       "title": "Export via SAF create-document + share sheet",
       "area": "feature",
-      "status": "pending",
-      "attempts": 0,
+      "status": "done",
+      "attempts": 1,
       "maxAttempts": 4,
       "dependsOn": [
         "android-build-green"
       ],
       "verify": ":composeApp:assembleDebug",
       "acceptance": "Exporting prompts a real Save/Share location and writes the file there; matches the desktop Save dialog UX.",
-      "description": "Replace the foundation pickSaveFile with ACTION_CREATE_DOCUMENT (correct MIME per format) and/or an ACTION_SEND share sheet, writing through the returned content Uri. Keep the off-UI-thread contract. Ensure exported HTML/DOCX/PNG/JPG/PDF open correctly in other apps."
+      "description": "Replace the foundation pickSaveFile with ACTION_CREATE_DOCUMENT (correct MIME per format) and/or an ACTION_SEND share sheet, writing through the returned content Uri. Keep the off-UI-thread contract. Ensure exported HTML/DOCX/PNG/JPG/PDF open correctly in other apps.",
+      "notes": "SAF ACTION_CREATE_DOCUMENT Save As + write via ContentResolver. Validated: exported welcome-to-pebo.jpg (79KB) to Downloads on emulator.",
+      "lastVerifiedUtc": "2026-06-19T07:47:59.5788041Z"
     },
     {
       "id": "android-image-renderer-parity",
       "title": "Raster/PDF renderer visual parity with desktop",
       "area": "feature",
-      "status": "pending",
-      "attempts": 0,
+      "status": "done",
+      "attempts": 1,
       "maxAttempts": 5,
       "dependsOn": [
         "android-actuals-export"
       ],
       "verify": ":composeApp:assembleDebug",
       "acceptance": "Android PNG/JPG/PDF output visually matches the desktop Skiko export (layout, fonts, code colors, tables, quotes, images).",
-      "description": "Tighten the android.graphics renderer so exported images/PDF match the desktop output: same page width/margins, heading sizes, code block background and syntax colors, table borders/header shading, blockquote bar, task list glyphs, image scaling, and inline bold/italic/strike/highlight/link/tag styling. Bundle or map the same fonts (Inter/JetBrains Mono from commonMain composeResources) for consistent metrics."
+      "description": "Tighten the android.graphics renderer so exported images/PDF match the desktop output: same page width/margins, heading sizes, code block background and syntax colors, table borders/header shading, blockquote bar, task list glyphs, image scaling, and inline bold/italic/strike/highlight/link/tag styling. Bundle or map the same fonts (Inter/JetBrains Mono from commonMain composeResources) for consistent metrics.",
+      "notes": "android.graphics/PdfDocument renderer; exported JPG visually matches desktop Skiko output (heading, teal tags, purple inline code, bullets, margins).",
+      "lastVerifiedUtc": "2026-06-19T07:47:59.5788041Z"
     },
     {
       "id": "android-secure-token-store",
