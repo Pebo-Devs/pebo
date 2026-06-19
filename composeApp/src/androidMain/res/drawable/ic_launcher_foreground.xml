@@ -1,13 +1,32 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Pebo page tile (brand gradient) with the dog-ear fold — the real logo, scaled to sit inside
+         the adaptive-icon safe circle so no launcher mask clips the rounded corners or the fold. -->
+    <path android:pathData="M37.1,22.8 H68.3 L85.2,39.7 V70.9 A14.3,14.3 0 0 1 70.9,85.2 H37.1 A14.3,14.3 0 0 1 22.8,70.9 V37.1 A14.3,14.3 0 0 1 37.1,22.8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="25.4"
+                android:startY="25.4"
+                android:endX="82.6"
+                android:endY="82.6"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF5B8CFF" />
+                <item android:offset="1" android:color="#FF7C5CFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#33000000"
+        android:pathData="M68.3,22.8 L85.2,39.7 H68.3 Z" />
     <path
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="10"
+        android:strokeWidth="6.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M54,80 V28 A14,14 0 1 1 54,56" />
+        android:pathData="M46.2,70.9 V37.1 A9.1,9.1 0 1 1 46.2,55.3" />
 </vector>
