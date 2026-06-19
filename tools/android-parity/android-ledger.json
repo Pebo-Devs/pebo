@@ -200,15 +200,17 @@
       "id": "android-app-icon-branding",
       "title": "Branded adaptive icon + splash + app name",
       "area": "ui",
-      "status": "pending",
-      "attempts": 0,
+      "status": "done",
+      "attempts": 1,
       "maxAttempts": 3,
       "dependsOn": [
         "android-manifest-entrypoint"
       ],
       "verify": ":composeApp:assembleDebug",
       "acceptance": "Launcher shows the Pebo adaptive icon; a branded splash (Android 12+ SplashScreen) appears; app name is Pebo.",
-      "description": "Generate a proper adaptive launcher icon (foreground from branding/pebo-logo, brand background) for all densities, plus a monochrome layer for themed icons. Add a branded splash via androidx.core.splashscreen. Ensure app_name=Pebo. Keep visuals consistent with the desktop branding."
+      "description": "Generate a proper adaptive launcher icon (foreground from branding/pebo-logo, brand background) for all densities, plus a monochrome layer for themed icons. Add a branded splash via androidx.core.splashscreen. Ensure app_name=Pebo. Keep visuals consistent with the desktop branding.",
+      "notes": "Adaptive icon (gradient + white P + monochrome) from branding SVG; branded core-splashscreen. Validated on emulator.",
+      "lastVerifiedUtc": "2026-06-19T07:39:44.5467103Z"
     },
     {
       "id": "android-docs-release",
