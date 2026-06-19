@@ -222,10 +222,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "pending",
+      "status": "done",
       "attempts": 0,
       "acceptance": "seedWelcomeNoteIfNeeded (currently in desktop main.kt) is available to Apple entry points without duplication (moved to commonMain or appleMain). Desktop still uses it; behavior unchanged.",
-      "notes": "Pure Okio/Note logic — safe to move to commonMain. Keeps iOS/macOS first-run identical to desktop."
+      "notes": "Pure Okio/Note logic — safe to move to commonMain. Keeps iOS/macOS first-run identical to desktop.",
+      "result_note": "Hoisted seedWelcomeNoteIfNeeded to commonMain; desktop rewired + green.",
+      "updated": "2026-06-19T07:03:27Z"
     },
     {
       "id": "filesystem-apple",
@@ -631,5 +633,5 @@
       "notes": "Use macos-latest, JDK 21, Xcode select; cache Gradle + konan."
     }
   ],
-  "updated": "2026-06-19T06:55:58Z"
+  "updated": "2026-06-19T07:03:27Z"
 }
