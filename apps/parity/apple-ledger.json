@@ -78,10 +78,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "pending",
+      "status": "deferred",
       "attempts": 0,
       "acceptance": "appleMain provides `actual fun newId()` (NSUUID().UUIDString) and `actual fun nowIso()` returning a millisecond ISO-8601 UTC string matching the desktop format (Instant.truncatedTo(MILLIS).toString()). Unit-test format if practical.",
-      "notes": "Desktop uses java.util.UUID + java.time.Instant. Match the exact ISO string shape (e.g. 2026-06-18T20:14:00.123Z). Consider kotlinx-datetime or NSISO8601DateFormatter with fractional seconds."
+      "notes": "Desktop uses java.util.UUID + java.time.Instant. Match the exact ISO string shape (e.g. 2026-06-18T20:14:00.123Z). Consider kotlinx-datetime or NSISO8601DateFormatter with fractional seconds.",
+      "result_note": "iOS newId (NSUUID) + nowIso (NSISO8601) written; needs Xcode to compile/verify.",
+      "updated": "2026-06-19T07:03:27Z"
     },
     {
       "id": "actual-pkce",
@@ -94,10 +96,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "pending",
+      "status": "deferred",
       "attempts": 0,
       "acceptance": "appleMain provides `actual fun newPkceVerifier()` (cryptographically random, RFC 7636 charset) and `actual fun pkceChallengeS256(verifier)` (SHA-256 then base64url no-pad). Verify against a known RFC 7636 test vector in a shared test.",
-      "notes": "Use SecRandomCopyBytes for randomness and CommonCrypto CC_SHA256 (or CryptoKit SHA256) for the digest. Match desktop Pkce.desktop.kt output exactly for the same verifier."
+      "notes": "Use SecRandomCopyBytes for randomness and CommonCrypto CC_SHA256 (or CryptoKit SHA256) for the digest. Match desktop Pkce.desktop.kt output exactly for the same verifier.",
+      "result_note": "Challenge moved to shared okio SHA-256 + verified vs RFC 7636 vector (commonTest). iOS newPkceVerifier (SecRandomCopyBytes) written; needs Xcode to compile.",
+      "updated": "2026-06-19T07:03:27Z"
     },
     {
       "id": "actual-folderpicker-ios",
