@@ -1,0 +1,223 @@
+{
+  "schema": 1,
+  "project": "Pebo Android parity",
+  "goal": "Add a native Android target that is a 1:1 match of the desktop app: identical shared-Compose UI and all functionality (notes, markdown editor, tags, themes, export, settings).",
+  "defaultVerify": ":composeApp:assembleDebug",
+  "globalContext": [
+    "This is a Kotlin Multiplatform + Compose Multiplatform app (module :composeApp). UI lives entirely in src/commonMain and is shared. App.kt already renders a CompactLayout for width < 840.dp, so the phone UI is the same shared Compose code — do NOT fork or rewrite UI.",
+    "The existing target is jvm('desktop'). Mirror its platform actuals for Android in src/androidMain. Every expect in commonMain must have an Android actual: core/Platform.kt (newId,nowIso), auth/Pkce.kt (newPkceVerifier,pkceChallengeS256), platform/FolderPicker.kt (pickFolder), export/NoteExport.kt (exportNote,pickSaveFile).",
+    "Toolchain: Kotlin 2.1.21, Compose 1.8.2, Gradle 8.14.5, JDK 21, Android SDK at ANDROID_HOME with platforms 34/35/36 and build-tools 34/35/36. minSdk 30 (so D8 can dex ktor 3.2.0 synthetic names; java.time also available), compileSdk/targetSdk 35.",
+    "Do not break the desktop target or any existing tests. Keep changes surgical. Match the desktop look and behavior exactly.",
+    "Build verification is the source of truth. After your change the verify command for the unit MUST pass."
+  ],
+  "units": [
+    {
+      "id": "android-gradle-target",
+      "title": "Add Android Gradle target + dependencies",
+      "area": "build",
+      "status": "done",
+      "attempts": 1,
+      "maxAttempts": 4,
+      "dependsOn": [],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "composeApp configures an androidTarget; :composeApp:assembleDebug reaches the compile step (failing only on missing actuals/manifest, which later units add).",
+      "description": "In gradle/libs.versions.toml add the Android Gradle Plugin (androidApplication plugin alias, a version compatible with Gradle 8.14.5 — AGP 8.7.x) and androidx libs: activity-compose, core-ktx, and ktor-client-okhttp (Android HTTP engine). In the root build.gradle.kts add `alias(libs.plugins.androidApplication) apply false`. In composeApp/build.gradle.kts: apply the android application plugin, add `androidTarget()` to the kotlin{} block, add an androidMain source set with deps (compose.preview/ui-tooling-preview via debugImplementation if needed, androidx.activity.compose, androidx.core.ktx, ktor-client-okhttp, kotlinx-coroutines-android), and add an `android { namespace=\"app.pebo\"; compileSdk=35; defaultConfig{ applicationId=\"app.pebo\"; minSdk=26; targetSdk=35; versionCode=1; versionName=\"1.0.0\" }; compileOptions{ source/target = JavaVersion 21 } }` block. Ensure compose.resources still generates for android. Do not remove the desktop target or compose.desktop block.",
+      "notes": "Bootstrapped + verified: :composeApp:assembleDebug green; desktop compile + tests unaffected.",
+      "lastVerifiedUtc": "2026-06-19T06:40:35.5849735Z"
+    },
+    {
+      "id": "android-manifest-entrypoint",
+      "title": "AndroidManifest, MainActivity, resources, launcher icon",
+      "area": "manifest",
+      "status": "done",
+      "attempts": 1,
+      "maxAttempts": 4,
+      "dependsOn": [
+        "android-gradle-target"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "App has a single launcher Activity hosting the shared App() composable; manifest, themes, strings, and an adaptive launcher icon (from branding/) exist; assembleDebug builds the APK once actuals exist.",
+      "description": "Create src/androidMain/AndroidManifest.xml with an <application> (label @string/app_name, theme @style/Theme.Pebo, RTL, allowBackup) and a single exported launcher MainActivity. Create src/androidMain/kotlin/app/pebo/MainActivity.kt: a ComponentActivity that enableEdgeToEdge, builds the same dependency graph as desktopMain/main.kt (FileSystem.SYSTEM, app dir = context.filesDir or getExternalFilesDir; FileAppPreferences at appDir/settings.conf; notes dir from PREF_NOTES_DIR or appDir; LocalNoteStore; NotesViewModel with storeFactory) and calls setContent { App(vm, notesBaseDir) }. Port the seedWelcomeNoteIfNeeded logic (or extract it to commonMain so both targets share it). Add res: values/strings.xml (app_name=Pebo), values/themes.xml (Theme.Pebo parent Theme.Material3.DayNight.NoActionBar or android:Theme.Material.NoActionBar), and an adaptive launcher icon (mipmap-anydpi-v26 ic_launcher + ic_launcher_round) generated from branding/pebo-logo PNGs with a background color matching the brand. Keep the brand dark title-bar feel via a dark status bar.",
+      "notes": "Bootstrapped + verified: :composeApp:assembleDebug green; desktop compile + tests unaffected.",
+      "lastVerifiedUtc": "2026-06-19T06:40:35.5849735Z"
+    },
+    {
+      "id": "android-actuals-core",
+      "title": "Android actuals: Platform + Pkce",
+      "area": "actuals",
+      "status": "done",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "dependsOn": [
+        "android-gradle-target"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "core/Platform.android.kt and auth/Pkce.android.kt provide actuals identical in behavior to the desktop versions.",
+      "description": "Create src/androidMain/kotlin/app/pebo/core/Platform.android.kt with actual newId()=UUID.randomUUID().toString() and actual nowIso()=Instant.now().truncatedTo(ChronoUnit.MILLIS).toString() (java.time is available at minSdk 26). Create src/androidMain/kotlin/app/pebo/auth/Pkce.android.kt copying the desktop SecureRandom/SHA-256/Base64-url implementation verbatim (java.security + java.util.Base64 are available on Android 26+).",
+      "notes": "Bootstrapped + verified: :composeApp:assembleDebug green; desktop compile + tests unaffected.",
+      "lastVerifiedUtc": "2026-06-19T06:40:35.5849735Z"
+    },
+    {
+      "id": "android-actuals-folderpicker",
+      "title": "Android folder picker (foundation, coroutine-safe)",
+      "area": "actuals",
+      "status": "done",
+      "attempts": 1,
+      "maxAttempts": 4,
+      "dependsOn": [
+        "android-manifest-entrypoint"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "platform/FolderPicker.android.kt compiles and never blocks the UI thread; default workspace works on a real filesystem path.",
+      "description": "pickFolder is currently called synchronously inside a Compose clickable{} (SettingsScreen.kt). On Android you cannot block the main thread for a SAF result. Provide a compiling, ANR-safe actual: keep a process-wide weak reference to the current Activity (set in MainActivity) and a registered ActivityResultLauncher for OpenDocumentTree. For this foundation unit a minimal correct behavior is acceptable: if no real-path folder can be resolved, return null (no-op) rather than blocking. Full SAF selection + persisted permission + okio adapter is handled by unit android-folder-picker-saf. Default notes workspace must be a real path under getExternalFilesDir/filesDir so okio LocalNoteStore works out of the box.",
+      "notes": "Bootstrapped + verified: :composeApp:assembleDebug green; desktop compile + tests unaffected.",
+      "lastVerifiedUtc": "2026-06-19T06:40:35.5849735Z"
+    },
+    {
+      "id": "android-actuals-export",
+      "title": "Android note export actuals (HTML/DOCX/PNG/JPG/PDF)",
+      "area": "actuals",
+      "status": "done",
+      "attempts": 1,
+      "maxAttempts": 5,
+      "dependsOn": [
+        "android-manifest-entrypoint"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "export/NoteExport.android.kt implements exportNote for all five formats and pickSaveFile; raster/PDF use android.graphics (no skiko).",
+      "description": "Create src/androidMain/kotlin/app/pebo/export/NoteExport.android.kt. HTML and DOCX reuse the pure commonMain generators (markdownToHtml, markdownToWordDocumentXml, docxPackageParts) — just write bytes. For JPG/PNG/PDF, port the desktop Skiko renderer (MarkdownImageRenderer.desktop.kt) to android.graphics: reuse the shared parseMarkdownBlocks, parseInline, highlightCode, and the same palette/sizes; draw with android.graphics.Canvas/Paint/Bitmap; encode PNG/JPEG via Bitmap.compress; build PDF with android.graphics.pdf.PdfDocument paginated to A4. pickSaveFile: for the foundation, write into the app's external files dir (or Downloads via MediaStore) and return that real path; a proper SAF ACTION_CREATE_DOCUMENT + share flow is unit android-export-saf-share. Must run off the UI thread (callers already use Dispatchers.Default).",
+      "notes": "Bootstrapped + verified: :composeApp:assembleDebug green; desktop compile + tests unaffected.",
+      "lastVerifiedUtc": "2026-06-19T06:40:35.5849735Z"
+    },
+    {
+      "id": "android-build-green",
+      "title": "Green assembleDebug + desktop still builds",
+      "area": "verify",
+      "status": "done",
+      "attempts": 1,
+      "maxAttempts": 4,
+      "dependsOn": [
+        "android-actuals-core",
+        "android-actuals-folderpicker",
+        "android-actuals-export"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": ":composeApp:assembleDebug produces a debug APK and :composeApp:compileKotlinDesktop still compiles.",
+      "description": "Resolve any remaining compilation/resource errors so :composeApp:assembleDebug yields a debug APK. Then confirm the desktop target is unaffected (compileKotlinDesktop). Fix expect/actual mismatches, missing imports, resource linking, or manifest merger issues. Do not weaken or stub shared logic.",
+      "notes": "Bootstrapped + verified: :composeApp:assembleDebug green; desktop compile + tests unaffected.",
+      "lastVerifiedUtc": "2026-06-19T06:40:35.5849735Z"
+    },
+    {
+      "id": "android-folder-picker-saf",
+      "title": "Full SAF folder selection + persisted access",
+      "area": "feature",
+      "status": "pending",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "dependsOn": [
+        "android-build-green"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "User can pick any folder via the system document-tree picker; selection persists across launches and the notes store reads/writes there.",
+      "description": "Implement real 'Any folder you choose' parity. Use ACTION_OPEN_DOCUMENT_TREE via the Activity's ActivityResultLauncher, persist the URI permission (takePersistableUriPermission), and make the chosen tree usable by the okio-based LocalNoteStore — either by adapting okio FileSystem to DocumentFile/SAF, or by resolving a real path where the platform allows. Bridge the UI-thread clickable call to a coroutine without ANR (e.g., expose a suspend pickFolder and update the single call site in SettingsScreen.kt to launch it; behavior identical to desktop). Update StorageProvider/Settings copy if needed so 'Any folder you choose' is Active."
+    },
+    {
+      "id": "android-export-saf-share",
+      "title": "Export via SAF create-document + share sheet",
+      "area": "feature",
+      "status": "pending",
+      "attempts": 0,
+      "maxAttempts": 4,
+      "dependsOn": [
+        "android-build-green"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "Exporting prompts a real Save/Share location and writes the file there; matches the desktop Save dialog UX.",
+      "description": "Replace the foundation pickSaveFile with ACTION_CREATE_DOCUMENT (correct MIME per format) and/or an ACTION_SEND share sheet, writing through the returned content Uri. Keep the off-UI-thread contract. Ensure exported HTML/DOCX/PNG/JPG/PDF open correctly in other apps."
+    },
+    {
+      "id": "android-image-renderer-parity",
+      "title": "Raster/PDF renderer visual parity with desktop",
+      "area": "feature",
+      "status": "pending",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "dependsOn": [
+        "android-actuals-export"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "Android PNG/JPG/PDF output visually matches the desktop Skiko export (layout, fonts, code colors, tables, quotes, images).",
+      "description": "Tighten the android.graphics renderer so exported images/PDF match the desktop output: same page width/margins, heading sizes, code block background and syntax colors, table borders/header shading, blockquote bar, task list glyphs, image scaling, and inline bold/italic/strike/highlight/link/tag styling. Bundle or map the same fonts (Inter/JetBrains Mono from commonMain composeResources) for consistent metrics."
+    },
+    {
+      "id": "android-secure-token-store",
+      "title": "Android SecureTokenStore (EncryptedSharedPreferences)",
+      "area": "feature",
+      "status": "pending",
+      "attempts": 0,
+      "maxAttempts": 4,
+      "dependsOn": [
+        "android-build-green"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "An Android SecureTokenStore stores OAuth tokens encrypted at rest, mirroring DesktopSecureTokenStore semantics.",
+      "description": "Provide an Android SecureTokenStore implementation backed by androidx.security:security-crypto EncryptedSharedPreferences (or Keystore-wrapped storage) with the same load/save/clear contract and StoredOAuthTokens serialization as DesktopSecureTokenStore. Add the dependency to androidMain. No tokens in plaintext."
+    },
+    {
+      "id": "android-oauth-signin",
+      "title": "Android OAuth PKCE sign-in (Custom Tabs)",
+      "area": "feature",
+      "status": "pending",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "dependsOn": [
+        "android-secure-token-store"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "OneDrive/Google sign-in works on Android via Custom Tabs + redirect; parity with DesktopOAuthSignIn.",
+      "description": "Mirror DesktopOAuthSignIn for Android: launch the authorization URL in a Chrome Custom Tab, receive the redirect via a custom-scheme intent-filter Activity, validate state, and complete the code exchange through the shared OAuthSessionManager. Add an AndroidOAuthClientIds (BuildConfig or manifest meta-data) equivalent. Wire sign-in into Settings only where the desktop wires it (note: providers are currently available=false; keep behavior consistent unless the desktop enables them)."
+    },
+    {
+      "id": "android-ui-parity-pass",
+      "title": "Emulator UI parity pass vs desktop",
+      "area": "ui",
+      "status": "pending",
+      "attempts": 0,
+      "maxAttempts": 6,
+      "dependsOn": [
+        "android-build-green"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "Each screen on the emulator matches the desktop app: note list, markdown editor + toolbar, sidebar/tag tree (drawer in compact), settings (themes, storage), command palette, focus mode, context menus.",
+      "description": "Install the debug APK on the AVD (Pixel_3a_API_34), launch, and walk every surface. Capture screenshots (adb exec-out screencap) into tools/android-parity/logs/shots/. Compare with the desktop UI and fix any divergence that comes from platform behavior (insets/edge-to-edge, status bar color, ripple, density, font loading, drawer behavior, keyboard handling). Do NOT redesign — the goal is pixel/behavior parity with the shared design. Verify themes (several of the 37 palettes), light/dark/system, and the command palette (Ctrl/Cmd+K has no phone equivalent — ensure an on-screen affordance exists if the desktop relies on it)."
+    },
+    {
+      "id": "android-app-icon-branding",
+      "title": "Branded adaptive icon + splash + app name",
+      "area": "ui",
+      "status": "pending",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "dependsOn": [
+        "android-manifest-entrypoint"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "Launcher shows the Pebo adaptive icon; a branded splash (Android 12+ SplashScreen) appears; app name is Pebo.",
+      "description": "Generate a proper adaptive launcher icon (foreground from branding/pebo-logo, brand background) for all densities, plus a monochrome layer for themed icons. Add a branded splash via androidx.core.splashscreen. Ensure app_name=Pebo. Keep visuals consistent with the desktop branding."
+    },
+    {
+      "id": "android-docs-release",
+      "title": "Docs + release build config",
+      "area": "build",
+      "status": "pending",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "dependsOn": [
+        "android-ui-parity-pass"
+      ],
+      "verify": ":composeApp:assembleDebug",
+      "acceptance": "README documents how to run/build the Android app; assembleRelease config and signing guidance exist; CI/build notes updated.",
+      "description": "Update README.md with an Android section (run on emulator/device, build APK with :composeApp:assembleDebug / bundle with :composeApp:bundleRelease). Add release build config (minify/resource-shrink if appropriate) and document signing. Update the 'Roadmap'/'Tech stack'/'Project structure' to reflect the shipped Android target."
+    }
+  ]
+}
