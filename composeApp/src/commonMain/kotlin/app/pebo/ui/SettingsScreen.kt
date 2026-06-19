@@ -46,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +63,7 @@ import app.pebo.platform.pickFolder
 import app.pebo.ui.theme.PeboPalette
 import app.pebo.ui.theme.Palettes
 import app.pebo.ui.theme.ThemeMode
+import kotlinx.coroutines.launch
 
 private enum class SettingsSection(val title: String, val icon: ImageVector) {
     Appearance("Appearance", Icons.Filled.Palette),
@@ -386,6 +388,7 @@ private fun Bar(color: Color, fraction: Float, height: Dp = 4.dp) {
 @Composable
 private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
     val scheme = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
     PanelHeader("Storage", "Choose where your notes live. They are always portable .md files you fully own.")
 
     SettingsCard {
@@ -408,7 +411,7 @@ private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
                 Text("Notes folder", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    vm.notesDir.ifBlank { dataDir },
+                    prettyNotesLocation(vm.notesDir.ifBlank { dataDir }),
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
                     maxLines = 2,
@@ -422,8 +425,10 @@ private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
                     .background(scheme.primary.copy(alpha = 0.12f))
                     .border(1.dp, scheme.primary.copy(alpha = 0.45f), RoundedCornerShape(9.dp))
                     .clickable {
-                        val picked = pickFolder("Choose your Pebo notes folder", vm.notesDir.ifBlank { dataDir })
-                        if (!picked.isNullOrBlank()) vm.changeNotesDir(picked)
+                        scope.launch {
+                            val picked = pickFolder("Choose your Pebo notes folder", vm.notesDir.ifBlank { dataDir })
+                            if (!picked.isNullOrBlank()) vm.changeNotesDir(picked)
+                        }
                     }
                     .padding(horizontal = 15.dp, vertical = 9.dp),
             ) {
@@ -492,6 +497,45 @@ private fun StatusBadge(label: String, active: Boolean) {
     Box(Modifier.clip(RoundedCornerShape(50)).background(bg).padding(horizontal = 10.dp, vertical = 4.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = fg)
     }
+}
+
+/**
+ * Renders the notes-folder handle for display. Real filesystem paths (desktop, and Android's default
+ * folder) are shown verbatim. Android Storage Access Framework tree URIs — what
+ * `content://…/tree/primary%3ADocuments%2FPebo` looks like raw — are decoded into a readable folder
+ * label such as `Documents/Pebo`, so the card reads the same as the desktop path it mirrors.
+ */
+private fun prettyNotesLocation(raw: String): String {
+    if (!raw.startsWith("content://")) return raw
+    val marker = "/tree/"
+    val start = raw.indexOf(marker)
+    if (start < 0) return raw
+    var encodedId = raw.substring(start + marker.length)
+    val nextSegment = encodedId.indexOf('/') // tree URIs may append a /document/… part
+    if (nextSegment >= 0) encodedId = encodedId.substring(0, nextSegment)
+    val decoded = percentDecode(encodedId)
+    return decoded.substringAfter(':', decoded).ifBlank { decoded }
+}
+
+/** Minimal percent-decoder for SAF document ids (folder labels are effectively ASCII). */
+private fun percentDecode(value: String): String {
+    if ('%' !in value) return value
+    val sb = StringBuilder(value.length)
+    var i = 0
+    while (i < value.length) {
+        val c = value[i]
+        if (c == '%' && i + 2 < value.length) {
+            val code = value.substring(i + 1, i + 3).toIntOrNull(16)
+            if (code != null) {
+                sb.append(code.toChar())
+                i += 3
+                continue
+            }
+        }
+        sb.append(c)
+        i++
+    }
+    return sb.toString()
 }
 
 // ── General / About ─────────────────────────────────────────────────────────

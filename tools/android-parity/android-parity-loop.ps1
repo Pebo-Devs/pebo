@@ -150,8 +150,16 @@ function Invoke-Verify([string]$verifyTask, [string]$logFile) {
     $gradlew = Join-Path $RepoRoot 'gradlew.bat'
     $tasks = $verifyTask -split '\s+' | Where-Object { $_ }
     Write-Stamp "Verifying: gradlew $($tasks -join ' ')" 'Yellow'
-    & $gradlew @tasks '--console=plain' 2>&1 | Tee-Object -FilePath $logFile
-    $code = $LASTEXITCODE
+    # Gradle uses the *current* directory as the project dir, so run from the repo root
+    # (the loop itself usually runs from tools/android-parity).
+    Push-Location $RepoRoot
+    $code = 1
+    try {
+        & $gradlew @tasks '--console=plain' 2>&1 | Tee-Object -FilePath $logFile
+        $code = $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
     Write-Stamp "Verify exit code $code" 'DarkGray'
     return $code
 }
