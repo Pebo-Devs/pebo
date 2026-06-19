@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -80,55 +81,139 @@ fun SettingsScreen(
     var section by remember { mutableStateOf(SettingsSection.Appearance) }
     val scheme = MaterialTheme.colorScheme
 
-    Row(modifier.fillMaxSize().background(scheme.background)) {
-        // ── Left nav ────────────────────────────────────────────────────────
-        Column(
+    BoxWithConstraints(modifier.fillMaxSize().background(scheme.background)) {
+        if (maxWidth < 640.dp) {
+            // Compact (phone): one pane at a time — the nav list drills into a section,
+            // and a back arrow returns to the list (so the side nav "closes").
+            var showDetail by remember { mutableStateOf(false) }
+            if (showDetail) {
+                SettingsContent(
+                    vm = vm,
+                    dataDir = dataDir,
+                    section = section,
+                    contentPadding = 20.dp,
+                    onBack = { showDetail = false },
+                    backLabel = "Settings",
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                SettingsNav(
+                    selected = section,
+                    onBack = onBack,
+                    onSelect = { section = it; showDetail = true },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        } else {
+            // Wide (desktop/tablet): master–detail side by side.
+            Row(Modifier.fillMaxSize()) {
+                SettingsNav(
+                    selected = section,
+                    onBack = onBack,
+                    onSelect = { section = it },
+                    modifier = Modifier.width(248.dp).fillMaxHeight(),
+                )
+                VPaneDivider()
+                SettingsContent(
+                    vm = vm,
+                    dataDir = dataDir,
+                    section = section,
+                    contentPadding = 40.dp,
+                    onBack = null,
+                    backLabel = null,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsNav(
+    selected: SettingsSection,
+    onBack: () -> Unit,
+    onSelect: (SettingsSection) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier
+            .background(scheme.surface.copy(alpha = 0.55f))
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+    ) {
+        Row(
             Modifier
-                .width(248.dp)
-                .fillMaxHeight()
-                .background(scheme.surface.copy(alpha = 0.55f))
-                .padding(horizontal = 14.dp, vertical = 14.dp),
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onBack)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = scheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Back to notes", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.height(14.dp))
+        Text(
+            "Settings",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = scheme.onSurface,
+            modifier = Modifier.padding(start = 8.dp),
+        )
+        Spacer(Modifier.height(18.dp))
+        SettingsSection.entries.forEach { entry ->
+            NavRow(entry, selected = selected == entry, onClick = { onSelect(entry) })
+            Spacer(Modifier.height(2.dp))
+        }
+    }
+}
+
+@Composable
+private fun SettingsContent(
+    vm: NotesViewModel,
+    dataDir: String,
+    section: SettingsSection,
+    contentPadding: Dp,
+    onBack: (() -> Unit)?,
+    backLabel: String?,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(modifier) {
+        if (onBack != null) {
             Row(
                 Modifier
+                    .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
                     .clickable(onClick = onBack)
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = scheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Back to notes", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-            }
-            Spacer(Modifier.height(14.dp))
-            Text(
-                "Settings",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = scheme.onSurface,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-            Spacer(Modifier.height(18.dp))
-            SettingsSection.entries.forEach { entry ->
-                NavRow(entry, selected = section == entry, onClick = { section = entry })
-                Spacer(Modifier.height(2.dp))
+                Text(
+                    backLabel ?: "Back",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = scheme.onSurfaceVariant,
+                )
             }
         }
-
-        VPaneDivider()
-
-        // ── Content ─────────────────────────────────────────────────────────
-        Box(Modifier.weight(1f).fillMaxHeight()) {
+        Box(Modifier.weight(1f).fillMaxWidth()) {
             Column(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 40.dp, vertical = 34.dp),
+                    .padding(horizontal = contentPadding, vertical = 34.dp),
             ) {
                 Column(Modifier.widthIn(max = 920.dp).fillMaxWidth()) {
                     when (section) {
