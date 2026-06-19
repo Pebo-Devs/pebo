@@ -186,7 +186,7 @@
       "acceptance": "OneDrive/Google sign-in works on Android via Custom Tabs + redirect; parity with DesktopOAuthSignIn.",
       "description": "Mirror DesktopOAuthSignIn for Android: launch the authorization URL in a Chrome Custom Tab, receive the redirect via a custom-scheme intent-filter Activity, validate state, and complete the code exchange through the shared OAuthSessionManager. Add an AndroidOAuthClientIds (BuildConfig or manifest meta-data) equivalent. Wire sign-in into Settings only where the desktop wires it (note: providers are currently available=false; keep behavior consistent unless the desktop enables them).",
       "notes": "AndroidOAuthSignIn (Custom Tabs) + OAuthRedirectActivity/Bus + AndroidOAuthClientIds; OAuthRedirectResult moved to commonMain. Built-but-unwired like desktop (needs client id). Verified assembleDebug + desktop tests.",
-      "lastVerifiedUtc": "2026-06-19T07:54:23.0962200Z"
+      "lastVerifiedUtc": "2026-06-19T07:54:23.09622Z"
     },
     {
       "id": "android-ui-parity-pass",
@@ -202,7 +202,7 @@
       "acceptance": "Each screen on the emulator matches the desktop app: note list, markdown editor + toolbar, sidebar/tag tree (drawer in compact), settings (themes, storage), command palette, focus mode, context menus.",
       "description": "Install the debug APK on the AVD (Pixel_3a_API_34), launch, and walk every surface. Capture screenshots (adb exec-out screencap) into tools/android-parity/logs/shots/. Compare with the desktop UI and fix any divergence that comes from platform behavior (insets/edge-to-edge, status bar color, ripple, density, font loading, drawer behavior, keyboard handling). Do NOT redesign — the goal is pixel/behavior parity with the shared design. Verify themes (several of the 37 palettes), light/dark/system, and the command palette (Ctrl/Cmd+K has no phone equivalent — ensure an on-screen affordance exists if the desktop relies on it).",
       "notes": "Emulator validation (Pixel_3a API 34): note list, editor (toolbar + live markdown + tags + inline code), sidebar tag tree, settings drawer, splash, export menu, SAF save all match desktop. Fixed system Back navigation. Screenshots in logs/shots.",
-      "lastVerifiedUtc": "2026-06-19T07:54:23.0962200Z"
+      "lastVerifiedUtc": "2026-06-19T07:54:23.09622Z"
     },
     {
       "id": "android-app-icon-branding",
@@ -224,15 +224,17 @@
       "id": "android-docs-release",
       "title": "Docs + release build config",
       "area": "build",
-      "status": "pending",
-      "attempts": 0,
+      "status": "done",
+      "attempts": 1,
       "maxAttempts": 3,
       "dependsOn": [
         "android-ui-parity-pass"
       ],
       "verify": ":composeApp:assembleDebug",
       "acceptance": "README documents how to run/build the Android app; assembleRelease config and signing guidance exist; CI/build notes updated.",
-      "description": "Update README.md with an Android section (run on emulator/device, build APK with :composeApp:assembleDebug / bundle with :composeApp:bundleRelease). Add release build config (minify/resource-shrink if appropriate) and document signing. Update the 'Roadmap'/'Tech stack'/'Project structure' to reflect the shipped Android target."
+      "description": "Update README.md with an Android section (run on emulator/device, build APK with :composeApp:assembleDebug / bundle with :composeApp:bundleRelease). Add release build config (minify/resource-shrink if appropriate) and document signing. Update the 'Roadmap'/'Tech stack'/'Project structure' to reflect the shipped Android target.",
+      "notes": "README updated (Android badge, run/build/release instructions, tech stack, structure, roadmap). assembleRelease verified -> composeApp-release-unsigned.apk (52MB).",
+      "lastVerifiedUtc": "2026-06-19T07:57:20.4449548Z"
     }
   ]
 }
