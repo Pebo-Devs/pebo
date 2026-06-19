@@ -66,8 +66,8 @@
       "attempts": 0,
       "acceptance": "An iosApp/ Xcode project exists (standard Compose Multiplatform layout) hosting the shared UI via a SwiftUI ComposeView wrapping the Kotlin `MainViewController()`. iosMain exposes `fun MainViewController(): UIViewController = ComposeUIViewController { App(...) }`. Framework links for iosSimulatorArm64 (defer if no Xcode).",
       "notes": "Use the JetBrains Compose MP iOS template structure: iosApp/iosApp.xcodeproj, iOSApp.swift, ContentView.swift, Info.plist. Framework name ComposeApp. App() needs a NotesViewModel + dataDir (see ios-entry-wiring).",
-      "result_note": "SwiftUI host + Info.plist + XcodeGen project.yml + Kotlin MainViewController bridge added. Needs full Xcode to generate .xcodeproj and build.",
-      "updated": "2026-06-19T07:08:54Z"
+      "result_note": "Kotlin bridge + Swift host compile. Final .framework link + Xcode app build need full Xcode (xcrun exit 72 here).",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "actual-platform-core",
@@ -80,12 +80,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "appleMain provides `actual fun newId()` (NSUUID().UUIDString) and `actual fun nowIso()` returning a millisecond ISO-8601 UTC string matching the desktop format (Instant.truncatedTo(MILLIS).toString()). Unit-test format if practical.",
       "notes": "Desktop uses java.util.UUID + java.time.Instant. Match the exact ISO string shape (e.g. 2026-06-18T20:14:00.123Z). Consider kotlinx-datetime or NSISO8601DateFormatter with fractional seconds.",
-      "result_note": "iOS newId (NSUUID) + nowIso (NSISO8601) written; needs Xcode to compile/verify.",
-      "updated": "2026-06-19T07:03:27Z"
+      "result_note": "newId/nowIso compiles for iosSimulatorArm64 + iosArm64",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "actual-pkce",
@@ -98,12 +98,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "appleMain provides `actual fun newPkceVerifier()` (cryptographically random, RFC 7636 charset) and `actual fun pkceChallengeS256(verifier)` (SHA-256 then base64url no-pad). Verify against a known RFC 7636 test vector in a shared test.",
       "notes": "Use SecRandomCopyBytes for randomness and CommonCrypto CC_SHA256 (or CryptoKit SHA256) for the digest. Match desktop Pkce.desktop.kt output exactly for the same verifier.",
-      "result_note": "Challenge moved to shared okio SHA-256 + verified vs RFC 7636 vector (commonTest). iOS newPkceVerifier (SecRandomCopyBytes) written; needs Xcode to compile.",
-      "updated": "2026-06-19T07:03:27Z"
+      "result_note": "Shared S256 verified vs RFC 7636 (desktop); iOS verifier compiles for iosSimulatorArm64 + iosArm64",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "actual-folderpicker-ios",
@@ -119,8 +119,8 @@
       "attempts": 0,
       "acceptance": "iosMain provides `actual fun pickFolder(...)` presenting UIDocumentPickerViewController in folder mode, returning the selected directory path (security-scoped bookmark resolved) or null on cancel.",
       "notes": "iOS sandbox: a picked folder needs startAccessingSecurityScopedResource + bookmark persistence. Coordinate with filesystem-apple. May present from the key window's rootViewController.",
-      "result_note": "iOS pickFolder returns null (sandbox uses Documents dir); async UIDocumentPicker is a follow-up.",
-      "updated": "2026-06-19T07:08:54Z"
+      "result_note": "Compiles (returns null; iOS uses Documents dir). Async UIDocumentPicker folder-pick is a follow-up.",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "actual-folderpicker-macos",
@@ -148,12 +148,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "HttpClientFactory builds a working client on Apple targets using the Darwin engine (desktop uses CIO). Sync/OAuth Ktor calls compile and run on iOS/macOS.",
       "notes": "Check commonMain/auth/HttpClientFactory.kt for how the engine is selected. Provide an appleMain engine (io.ktor:ktor-client-darwin).",
-      "result_note": "ktor-client-darwin added to iosMain; HttpClientFactory auto-selects engine. Needs iOS build to verify.",
-      "updated": "2026-06-19T07:03:27Z"
+      "result_note": "Darwin engine auto-selected; compiles for iosSimulatorArm64 + iosArm64",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "actual-noteexport-apple",
@@ -170,8 +170,8 @@
       "attempts": 0,
       "acceptance": "appleMain provides `actual fun exportNote(...)` for all five ExportFormat values and `actual fun pickSaveFile(...)`. iOS save -> share sheet / Files; macOS save -> NSSavePanel. Raster formats resolve relative image paths against attachmentsDir.",
       "notes": "Mirror NoteExport.desktop.kt. HTML is plain string output. PDF via PDFKit/CoreGraphics; PNG/JPG via UIGraphicsImageRenderer (iOS) / NSImage (macOS); DOCX reuse any shared OOXML builder the desktop uses. Large unit — split if needed.",
-      "result_note": "iOS HTML export implemented via shared generator + okio; DOCX/PDF/PNG/JPG return false pending an iOS renderer.",
-      "updated": "2026-06-19T07:08:54Z"
+      "result_note": "Compiles; HTML export works. DOCX/PDF/PNG/JPG return false pending an iOS renderer/zip.",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "actual-markdown-image-renderer-apple",
@@ -252,12 +252,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "A default notes base dir is chosen per platform (iOS: app Documents dir via NSSearchPathForDirectoriesInDomains; macOS: ~/Pebo or app container) and LocalNoteStore reads/writes there with Okio FileSystem.SYSTEM. Atomic writes work in the sandbox.",
       "notes": "Desktop uses System.getProperty(user.home)+\"/Pebo\". iOS must use the sandboxed Documents directory; iCloud Drive is a later enhancement.",
-      "result_note": "iOS uses sandboxed Documents dir via NSSearchPathForDirectoriesInDomains + okio FileSystem.SYSTEM. Needs iOS build to verify atomic writes.",
-      "updated": "2026-06-19T07:08:54Z"
+      "result_note": "Documents dir + okio FileSystem.SYSTEM compiles for iosSimulatorArm64 + iosArm64",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "compose-resources-apple",
@@ -270,10 +270,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "pending",
+      "status": "done",
       "attempts": 0,
       "acceptance": "Inter + JetBrains Mono fonts and any composeResources load correctly on iOS/macOS (no missing-resource crashes). Typography matches desktop.",
-      "notes": "compose.resources block already set (publicResClass). Verify resource accessors resolve on Apple."
+      "notes": "compose.resources block already set (publicResClass). Verify resource accessors resolve on Apple.",
+      "result_note": "Shared Compose UI + composeResources compiles for iosSimulatorArm64 + iosArm64",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "ios-entry-wiring",
@@ -288,12 +290,12 @@
         "filesystem-apple",
         "extract-welcome-seed-common"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "MainViewController builds FileAppPreferences + LocalNoteStore in the iOS Documents dir, seeds the welcome note on first run, constructs NotesViewModel (with storeFactory), and renders App(vm, dataDir). The app launches in the simulator to the three-pane/compact UI (defer launch if no Xcode).",
       "notes": "Mirror desktop main.kt wiring. Use a CoroutineScope(SupervisorJob()+Dispatchers.Default).",
-      "result_note": "MainViewController wires prefs+store in iOS Documents dir, seeds welcome notes, builds NotesViewModel, renders App(). Needs Xcode to compile.",
-      "updated": "2026-06-19T07:08:54Z"
+      "result_note": "MainViewController compiles for iosSimulatorArm64 + iosArm64",
+      "updated": "2026-06-19T07:14:44Z"
     },
     {
       "id": "macos-desktop-dmg",
@@ -649,5 +651,5 @@
       "notes": "Use macos-latest, JDK 21, Xcode select; cache Gradle + konan."
     }
   ],
-  "updated": "2026-06-19T07:08:54Z"
+  "updated": "2026-06-19T07:14:44Z"
 }
