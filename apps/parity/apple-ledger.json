@@ -62,12 +62,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "An iosApp/ Xcode project exists (standard Compose Multiplatform layout) hosting the shared UI via a SwiftUI ComposeView wrapping the Kotlin `MainViewController()`. iosMain exposes `fun MainViewController(): UIViewController = ComposeUIViewController { App(...) }`. Framework links for iosSimulatorArm64 (defer if no Xcode).",
       "notes": "Use the JetBrains Compose MP iOS template structure: iosApp/iosApp.xcodeproj, iOSApp.swift, ContentView.swift, Info.plist. Framework name ComposeApp. App() needs a NotesViewModel + dataDir (see ios-entry-wiring).",
-      "result_note": "Kotlin bridge + Swift host compile. Final .framework link + Xcode app build need full Xcode (xcrun exit 72 here).",
-      "updated": "2026-06-19T07:14:44Z"
+      "result_note": "xcodegen generates iosApp.xcodeproj; xcodebuild builds Pebo.app (framework compiled+embedded+signed).",
+      "updated": "2026-06-19T14:38:22Z"
     },
     {
       "id": "actual-platform-core",
@@ -615,12 +615,12 @@
         "actual-pkce",
         "keychain-token-store"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "commonTest compiles for Apple; `./gradlew :composeApp:iosSimulatorArm64Test` (and/or macosArm64Test) passes. Add appleTest actuals where desktopTest had platform-specific tests. Defer the simulator run if Xcode is missing but ensure compilation.",
       "notes": "There are 19 commonTest + 7 desktopTest files. Port platform-specific desktop tests (DPAPI store, loopback receiver) to Apple equivalents or guard them.",
-      "result_note": "iOS test code compiles (compileTestKotlinIosSimulatorArm64); running iosSimulatorArm64Test needs a simulator. Desktop suite green.",
-      "updated": "2026-06-19T07:16:33Z"
+      "result_note": "iosSimulatorArm64Test passes on the simulator (incl. shared PkceTest, OAuth, sync). desktop suite green.",
+      "updated": "2026-06-19T14:38:22Z"
     },
     {
       "id": "build-ios-sim",
@@ -637,12 +637,12 @@
         "parity-themes",
         "tests-apple"
       ],
-      "status": "deferred",
+      "status": "done",
       "attempts": 0,
       "acceptance": "`./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64` succeeds and the Xcode app builds and boots in an iOS simulator; smoke test create/edit/tag/export a note. DEFER if full Xcode/simulator is unavailable.",
       "notes": "xcodebuild -scheme iosApp -sdk iphonesimulator; xcrun simctl boot/install/launch.",
-      "result_note": "Framework link needs full Xcode (xcrun exit 72 here) + a simulator for the app build/run.",
-      "updated": "2026-06-19T07:16:33Z"
+      "result_note": "Built Pebo.app, booted iPhone 16 (iOS 26.5), installed + launched; screenshot confirms full Pebo UI.",
+      "updated": "2026-06-19T14:38:22Z"
     },
     {
       "id": "build-macos",
@@ -699,5 +699,5 @@
       "updated": "2026-06-19T07:16:33Z"
     }
   ],
-  "updated": "2026-06-19T14:27:50Z"
+  "updated": "2026-06-19T14:38:22Z"
 }

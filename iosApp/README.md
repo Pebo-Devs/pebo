@@ -51,7 +51,6 @@ and calls `MainViewControllerKt.MainViewController()`.
 
 ## Status
 
-Scaffolded by the Apple parity loop (`apps/parity/`). The Swift host, Kotlin bridge, and iOS `actual`
-implementations are in place, but the project still needs an **Xcode build on a machine with the iOS
-SDK** to compile/run and to finish the deferred iOS units (see `apps/parity/apple-ledger.json`). Set a
-development team in Xcode before running on a device.
+Scaffolded by the Apple parity loop (`apps/parity/`) and **verified end-to-end**: the shared
+framework compiles + links, the app builds (`xcodebuild … -sdk iphonesimulator`), and it runs in the
+iOS Simulator showing the full Pebo UI. Set a development team in Xcode before running on a device.
