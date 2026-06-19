@@ -62,10 +62,12 @@
       "deps": [
         "gradle-apple-targets"
       ],
-      "status": "pending",
+      "status": "deferred",
       "attempts": 0,
       "acceptance": "An iosApp/ Xcode project exists (standard Compose Multiplatform layout) hosting the shared UI via a SwiftUI ComposeView wrapping the Kotlin `MainViewController()`. iosMain exposes `fun MainViewController(): UIViewController = ComposeUIViewController { App(...) }`. Framework links for iosSimulatorArm64 (defer if no Xcode).",
-      "notes": "Use the JetBrains Compose MP iOS template structure: iosApp/iosApp.xcodeproj, iOSApp.swift, ContentView.swift, Info.plist. Framework name ComposeApp. App() needs a NotesViewModel + dataDir (see ios-entry-wiring)."
+      "notes": "Use the JetBrains Compose MP iOS template structure: iosApp/iosApp.xcodeproj, iOSApp.swift, ContentView.swift, Info.plist. Framework name ComposeApp. App() needs a NotesViewModel + dataDir (see ios-entry-wiring).",
+      "result_note": "SwiftUI host + Info.plist + XcodeGen project.yml + Kotlin MainViewController bridge added. Needs full Xcode to generate .xcodeproj and build.",
+      "updated": "2026-06-19T07:08:54Z"
     },
     {
       "id": "actual-platform-core",
@@ -639,5 +641,5 @@
       "notes": "Use macos-latest, JDK 21, Xcode select; cache Gradle + konan."
     }
   ],
-  "updated": "2026-06-19T07:03:27Z"
+  "updated": "2026-06-19T07:08:54Z"
 }

@@ -1,0 +1,57 @@
+# Pebo for iOS
+
+This is the SwiftUI host for the **iOS** build of Pebo. The entire UI and all logic come from the
+shared Kotlin Multiplatform / Compose Multiplatform code in `../composeApp`; this target only embeds
+the shared `ComposeApp` framework and shows it.
+
+```
+iosApp/
+├─ project.yml              # XcodeGen spec that produces iosApp.xcodeproj
+└─ iosApp/
+   ├─ iOSApp.swift          # @main App
+   ├─ ContentView.swift     # wraps Kotlin MainViewController() in SwiftUI
+   ├─ Info.plist
+   └─ Assets.xcassets/      # add an AppIcon set here
+```
+
+The Kotlin side of the bridge lives in
+`../composeApp/src/iosMain/kotlin/app/pebo/MainViewController.kt`.
+
+## Prerequisites
+
+- **Xcode** (full install — Command Line Tools alone do not include the iOS SDK/simulator)
+- **JDK 21**
+- **[XcodeGen](https://github.com/yonyz/XcodeGen)** to generate the project from `project.yml`:
+  `brew install xcodegen` (optional — you can instead open/create the project in Xcode or via the
+  Android Studio *Kotlin Multiplatform* plugin)
+
+## Generate & run
+
+```bash
+# 1. Generate iosApp.xcodeproj from project.yml
+cd iosApp && xcodegen generate && cd ..
+
+# 2. Build the Kotlin framework for the simulator (also done automatically by the
+#    "Compile Kotlin Framework" build phase, but useful to verify standalone):
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+
+# 3. Build & boot in a simulator
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp \
+  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' build
+```
+
+Or just open `iosApp/iosApp.xcodeproj` in Xcode, pick a simulator, and press ▶.
+
+## How the framework is wired
+
+`project.yml` adds a **Compile Kotlin Framework** pre-build script that runs
+`./gradlew :composeApp:embedAndSignAppleFrameworkForXcode`, and points `FRAMEWORK_SEARCH_PATHS` at
+`composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)`. The app links `-framework ComposeApp`
+and calls `MainViewControllerKt.MainViewController()`.
+
+## Status
+
+Scaffolded by the Apple parity loop (`apps/parity/`). The Swift host, Kotlin bridge, and iOS `actual`
+implementations are in place, but the project still needs an **Xcode build on a machine with the iOS
+SDK** to compile/run and to finish the deferred iOS units (see `apps/parity/apple-ledger.json`). Set a
+development team in Xcode before running on a device.
