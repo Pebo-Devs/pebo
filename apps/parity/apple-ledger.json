@@ -1,0 +1,628 @@
+{
+  "version": 1,
+  "target": "Build native iOS + macOS apps at full parity (same UI + all functionality) with the Pebo Compose Desktop app.",
+  "branch": "apps/apple",
+  "conventions": {
+    "status_values": [
+      "pending",
+      "in_progress",
+      "done",
+      "deferred",
+      "failed"
+    ],
+    "deferred_meaning": "Code is written/staged but verification is blocked by a missing toolchain (e.g. Xcode, JDK 21, CocoaPods). Deferred deps still unblock dependents; re-run with --retry-deferred in a full environment to flip them to done.",
+    "ready_rule": "A unit is ready when status == pending and every dependency is in {done, deferred}."
+  },
+  "prerequisites": {
+    "full_xcode": "xcodebuild -version (Command Line Tools alone is NOT enough for iOS SDK/simulator)",
+    "jdk": "JDK 21 active (project requires 21)",
+    "cocoapods": "pod --version (only if the Xcode project integrates the framework via CocoaPods)",
+    "ios_simulator": "xcrun simctl list devices available"
+  },
+  "units": [
+    {
+      "id": "env-toolchain-check",
+      "title": "Verify Apple build toolchain (Xcode, JDK 21, simulator, CocoaPods)",
+      "category": "env",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Report which of: full Xcode, JDK 21, iOS simulator, CocoaPods are present. If Xcode/simulator absent, note that iOS build/run units must be deferred. This unit is informational and never blocks others.",
+      "notes": "Run: xcodebuild -version; /usr/libexec/java_home -V; xcrun simctl list devices available; pod --version. Mark done if it reports cleanly even when tools are missing."
+    },
+    {
+      "id": "gradle-apple-targets",
+      "title": "Add iOS (+ native macOS) Kotlin targets and Apple source sets to composeApp",
+      "category": "build",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "composeApp/build.gradle.kts declares iosX64/iosArm64/iosSimulatorArm64 (binaries.framework baseName=\"ComposeApp\", isStatic=true). Add appleMain (parent of iosMain) source set hierarchy and a Darwin Ktor engine dep (ktor-client-darwin) for iosMain. Optionally add macosArm64/macosX64 behind evaluation. Add jvmToolchain(21) if the desktop build needs it. `./gradlew :composeApp:help` succeeds. iOS framework-link verification may be deferred if Xcode is missing.",
+      "notes": "Add ktor-client-darwin to libs.versions.toml. appleMain depends on commonMain; iosMain/macosMain depend on appleMain. Do NOT remove the desktop target. Keep desktop build green."
+    },
+    {
+      "id": "ios-app-shell",
+      "title": "Create iosApp Xcode project + MainViewController bridge",
+      "category": "build",
+      "platform": [
+        "ios"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "An iosApp/ Xcode project exists (standard Compose Multiplatform layout) hosting the shared UI via a SwiftUI ComposeView wrapping the Kotlin `MainViewController()`. iosMain exposes `fun MainViewController(): UIViewController = ComposeUIViewController { App(...) }`. Framework links for iosSimulatorArm64 (defer if no Xcode).",
+      "notes": "Use the JetBrains Compose MP iOS template structure: iosApp/iosApp.xcodeproj, iOSApp.swift, ContentView.swift, Info.plist. Framework name ComposeApp. App() needs a NotesViewModel + dataDir (see ios-entry-wiring)."
+    },
+    {
+      "id": "actual-platform-core",
+      "title": "Apple actuals for Platform.kt (newId, nowIso)",
+      "category": "actual",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "appleMain provides `actual fun newId()` (NSUUID().UUIDString) and `actual fun nowIso()` returning a millisecond ISO-8601 UTC string matching the desktop format (Instant.truncatedTo(MILLIS).toString()). Unit-test format if practical.",
+      "notes": "Desktop uses java.util.UUID + java.time.Instant. Match the exact ISO string shape (e.g. 2026-06-18T20:14:00.123Z). Consider kotlinx-datetime or NSISO8601DateFormatter with fractional seconds."
+    },
+    {
+      "id": "actual-pkce",
+      "title": "Apple actuals for Pkce.kt (verifier + S256 challenge)",
+      "category": "actual",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "appleMain provides `actual fun newPkceVerifier()` (cryptographically random, RFC 7636 charset) and `actual fun pkceChallengeS256(verifier)` (SHA-256 then base64url no-pad). Verify against a known RFC 7636 test vector in a shared test.",
+      "notes": "Use SecRandomCopyBytes for randomness and CommonCrypto CC_SHA256 (or CryptoKit SHA256) for the digest. Match desktop Pkce.desktop.kt output exactly for the same verifier."
+    },
+    {
+      "id": "actual-folderpicker-ios",
+      "title": "iOS actual for FolderPicker.pickFolder (UIDocumentPicker)",
+      "category": "actual",
+      "platform": [
+        "ios"
+      ],
+      "deps": [
+        "ios-app-shell"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "iosMain provides `actual fun pickFolder(...)` presenting UIDocumentPickerViewController in folder mode, returning the selected directory path (security-scoped bookmark resolved) or null on cancel.",
+      "notes": "iOS sandbox: a picked folder needs startAccessingSecurityScopedResource + bookmark persistence. Coordinate with filesystem-apple. May present from the key window's rootViewController."
+    },
+    {
+      "id": "actual-folderpicker-macos",
+      "title": "macOS actual for FolderPicker.pickFolder (NSOpenPanel)",
+      "category": "actual",
+      "platform": [
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Native-macOS source set provides `actual fun pickFolder(...)` using NSOpenPanel (canChooseDirectories=true, canChooseFiles=false). If the native macOS target is deferred, the JVM-desktop Swing picker already covers macOS — note that and defer.",
+      "notes": "Only needed if pursuing the native macosArm64 Compose target. The JVM desktop target's FolderPicker.desktop.kt (Swing) already works on macOS."
+    },
+    {
+      "id": "ktor-darwin-engine",
+      "title": "Darwin Ktor engine wiring for Apple HTTP client",
+      "category": "actual",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "HttpClientFactory builds a working client on Apple targets using the Darwin engine (desktop uses CIO). Sync/OAuth Ktor calls compile and run on iOS/macOS.",
+      "notes": "Check commonMain/auth/HttpClientFactory.kt for how the engine is selected. Provide an appleMain engine (io.ktor:ktor-client-darwin)."
+    },
+    {
+      "id": "actual-noteexport-apple",
+      "title": "Apple actuals for NoteExport (HTML/PDF/PNG/JPG/DOCX + save dialog)",
+      "category": "actual",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "appleMain provides `actual fun exportNote(...)` for all five ExportFormat values and `actual fun pickSaveFile(...)`. iOS save -> share sheet / Files; macOS save -> NSSavePanel. Raster formats resolve relative image paths against attachmentsDir.",
+      "notes": "Mirror NoteExport.desktop.kt. HTML is plain string output. PDF via PDFKit/CoreGraphics; PNG/JPG via UIGraphicsImageRenderer (iOS) / NSImage (macOS); DOCX reuse any shared OOXML builder the desktop uses. Large unit — split if needed."
+    },
+    {
+      "id": "actual-markdown-image-renderer-apple",
+      "title": "Apple actual for MarkdownImageRenderer (raster export support)",
+      "category": "actual",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "actual-noteexport-apple"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "The image renderer used by raster export has an Apple implementation matching the desktop output closely enough that PNG/JPG export produces a correct note image.",
+      "notes": "See desktopMain/export/MarkdownImageRenderer.desktop.kt for the contract."
+    },
+    {
+      "id": "keychain-token-store",
+      "title": "Keychain-backed SecureTokenStore for iOS + macOS",
+      "category": "auth",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "An appleMain KeychainSecureTokenStore implements SecureTokenStore (load/save/clear) using the Security framework (kSecClassGenericPassword). Round-trip save/load/clear verified by a test where the simulator is available (else deferred).",
+      "notes": "Replaces the Windows-DPAPI DesktopSecureTokenStore on Apple. Also fixes the macOS-desktop gap (DesktopSecureTokenStore requires isWindows())."
+    },
+    {
+      "id": "oauth-signin-apple",
+      "title": "ASWebAuthenticationSession OAuth sign-in for Apple",
+      "category": "auth",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "keychain-token-store",
+        "actual-pkce",
+        "ktor-darwin-engine"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Apple sign-in uses ASWebAuthenticationSession with a custom redirect scheme, returns the auth code to OAuthSessionManager, and persists tokens via the Keychain store. AppleOAuthClientIds resolves client IDs (env/Info.plist), gracefully disabled when unset (parity with desktop).",
+      "notes": "Replaces DesktopOAuthRedirectReceiver (loopback HTTP) + DesktopOAuthSignIn. Register the redirect URL scheme in Info.plist."
+    },
+    {
+      "id": "extract-welcome-seed-common",
+      "title": "Hoist welcome-note seeding to shared code",
+      "category": "wiring",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "seedWelcomeNoteIfNeeded (currently in desktop main.kt) is available to Apple entry points without duplication (moved to commonMain or appleMain). Desktop still uses it; behavior unchanged.",
+      "notes": "Pure Okio/Note logic — safe to move to commonMain. Keeps iOS/macOS first-run identical to desktop."
+    },
+    {
+      "id": "filesystem-apple",
+      "title": "Notes directory + Okio FileSystem on Apple sandboxes",
+      "category": "wiring",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "A default notes base dir is chosen per platform (iOS: app Documents dir via NSSearchPathForDirectoriesInDomains; macOS: ~/Pebo or app container) and LocalNoteStore reads/writes there with Okio FileSystem.SYSTEM. Atomic writes work in the sandbox.",
+      "notes": "Desktop uses System.getProperty(user.home)+\"/Pebo\". iOS must use the sandboxed Documents directory; iCloud Drive is a later enhancement."
+    },
+    {
+      "id": "compose-resources-apple",
+      "title": "Compose resources (fonts) load on Apple targets",
+      "category": "wiring",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Inter + JetBrains Mono fonts and any composeResources load correctly on iOS/macOS (no missing-resource crashes). Typography matches desktop.",
+      "notes": "compose.resources block already set (publicResClass). Verify resource accessors resolve on Apple."
+    },
+    {
+      "id": "ios-entry-wiring",
+      "title": "iOS app initialization (prefs, store, ViewModel, App())",
+      "category": "wiring",
+      "platform": [
+        "ios"
+      ],
+      "deps": [
+        "ios-app-shell",
+        "actual-platform-core",
+        "filesystem-apple",
+        "extract-welcome-seed-common"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "MainViewController builds FileAppPreferences + LocalNoteStore in the iOS Documents dir, seeds the welcome note on first run, constructs NotesViewModel (with storeFactory), and renders App(vm, dataDir). The app launches in the simulator to the three-pane/compact UI (defer launch if no Xcode).",
+      "notes": "Mirror desktop main.kt wiring. Use a CoroutineScope(SupervisorJob()+Dispatchers.Default)."
+    },
+    {
+      "id": "macos-desktop-dmg",
+      "title": "macOS app via Compose Desktop (.dmg) — build, run, polish",
+      "category": "build",
+      "platform": [
+        "macos"
+      ],
+      "deps": [
+        "keychain-token-store"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "`./gradlew :composeApp:run` launches on macOS and `:composeApp:packageDmg` produces a branded Pebo.dmg. macOS-only crashers are removed (e.g. secure-token-store now works on macOS). App uses the .icns icon and a sensible window. Requires JDK 21.",
+      "notes": "This is the pragmatic, fully-supported 'Mac app' — same codebase/UI as Windows desktop. main.kt already no-ops the Windows title-bar tweak on non-Windows."
+    },
+    {
+      "id": "macos-native-entry",
+      "title": "(Stretch) Native macOS Compose target entry point",
+      "category": "build",
+      "platform": [
+        "macos"
+      ],
+      "deps": [
+        "gradle-apple-targets",
+        "actual-platform-core",
+        "filesystem-apple"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "If Compose Multiplatform 1.8.2 supports a native macosArm64 Compose UI window, provide a macosMain main() launching the App() in a native window. If unsupported/experimental-unstable, DEFER with a clear note and rely on macos-desktop-dmg.",
+      "notes": "Compose-for-desktop on macOS runs on the JVM; native macOS Compose UI is experimental. Evaluate; do not block parity on it."
+    },
+    {
+      "id": "parity-notelist",
+      "title": "Parity: note list (hierarchy, pin, filters, selection)",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "ios-entry-wiring",
+        "macos-desktop-dmg"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "NoteList renders identically and works on iOS + macOS: parent/child hierarchy lines, pinned ordering, All/Untagged/Tag/Trash filters, selection drives the editor. Compact (iOS phone) layout shows list->editor navigation.",
+      "notes": "ui/NoteList.kt. Compact layout already in App.kt CompactLayout."
+    },
+    {
+      "id": "parity-editor",
+      "title": "Parity: Markdown editor (typing, autosave, live formatting)",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "ios-entry-wiring",
+        "macos-desktop-dmg"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Editor typing, autosave, live Markdown rendering, word count, and the soft keyboard (iOS) behave correctly. richeditor-compose works on Apple.",
+      "notes": "ui/Editor.kt, MarkdownEditing.kt, MarkdownVisualTransformation.kt."
+    },
+    {
+      "id": "parity-editor-toolbar",
+      "title": "Parity: editor toolbar actions",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "parity-editor"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Bold/italic/inline-code/headings/lists/task-lists/quote/link/code-fence toolbar actions rewrite raw Markdown correctly on iOS + macOS (round-trips preserved).",
+      "notes": "ui/EditorToolbar.kt."
+    },
+    {
+      "id": "parity-markdown-preview",
+      "title": "Parity: Markdown preview (all elements)",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "parity-editor"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Foldable headings, bold/italic/code/links, bullet/numbered/task lists, blockquotes, fenced code, tables, images, hr all render in the preview on Apple.",
+      "notes": "ui/MarkdownPreview.kt."
+    },
+    {
+      "id": "parity-mermaid",
+      "title": "Parity: Mermaid diagrams on Compose canvas",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "parity-markdown-preview"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Flowchart + sequence diagrams render on the Compose canvas on iOS + macOS, matching desktop.",
+      "notes": "ui/Mermaid.kt — pure Compose canvas, should port directly."
+    },
+    {
+      "id": "parity-syntax-highlight",
+      "title": "Parity: code-fence syntax highlighting",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "parity-markdown-preview"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Fenced code blocks are syntax-highlighted identically on Apple.",
+      "notes": "ui/SyntaxHighlight.kt."
+    },
+    {
+      "id": "parity-outline-focus",
+      "title": "Parity: outline folding + Focus mode",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "parity-editor"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Outline with heading folding works; Focus mode (centered canvas) toggles via Cmd/Ctrl+Shift+F (macOS) and a UI affordance (iOS). Esc/back exits.",
+      "notes": "ui/Outline.kt; App.kt key handling. iOS needs a button since no keyboard shortcut."
+    },
+    {
+      "id": "parity-sidebar-tags",
+      "title": "Parity: sidebar nested tag tree + tag icons",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "parity-notelist"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Nested #tag tree, 376 named tag icons, filter-by-tag, pin/untagged/trash all work on Apple. Sidebar is a drawer on iOS compact.",
+      "notes": "ui/Sidebar.kt, TagIcons.kt, TagMeta.kt."
+    },
+    {
+      "id": "parity-tag-autocomplete",
+      "title": "Parity: inline #tag autocomplete",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "parity-editor"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Typing # shows inline tag autocomplete on iOS + macOS.",
+      "notes": "ui/TagComplete.kt."
+    },
+    {
+      "id": "parity-command-palette",
+      "title": "Parity: command palette (Cmd/Ctrl+K)",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "ios-entry-wiring",
+        "macos-desktop-dmg"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Command palette opens via Cmd/Ctrl+K (macOS) and a toolbar/FAB affordance (iOS), centers correctly, and runs all actions. Centering must not rely on Compose-Desktop-only window pixel APIs.",
+      "notes": "ui/CommandPalette.kt has a Compose-Desktop HiDPI window-size comment — verify it works or adapt for Apple."
+    },
+    {
+      "id": "parity-settings-storage",
+      "title": "Parity: Settings + Storage provider screen",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "ios-entry-wiring",
+        "macos-desktop-dmg",
+        "actual-folderpicker-ios"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Settings screen (theme mode, palette, storage backend) works on Apple. 'On this device' + 'Any folder you choose' use the Apple folder picker. Cloud backends show the same gated state as desktop.",
+      "notes": "ui/SettingsScreen.kt, StorageProvider.kt."
+    },
+    {
+      "id": "parity-themes",
+      "title": "Parity: 37 themes + Light/Dark/System",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "ios-entry-wiring",
+        "macos-desktop-dmg"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "All 37 palettes and Light/Dark/System switching render correctly on iOS + macOS. System mode follows the OS appearance.",
+      "notes": "ui/theme/*. Verify isSystemInDarkTheme works on Apple."
+    },
+    {
+      "id": "parity-export-ui",
+      "title": "Parity: export flow (HTML/PDF/DOCX/JPG/PNG)",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "actual-noteexport-apple",
+        "actual-markdown-image-renderer-apple",
+        "ios-entry-wiring",
+        "macos-desktop-dmg"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Exporting a note to each format works end-to-end on iOS (share sheet) and macOS (save panel), with relative images resolved.",
+      "notes": "Ties the export actuals into the UI action."
+    },
+    {
+      "id": "parity-context-menus",
+      "title": "Parity: note context menus (right-click / long-press)",
+      "category": "parity",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "parity-notelist"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "Open, pin/unpin, add child, move to Trash, restore, delete-permanently are reachable: right-click on macOS, long-press/overflow on iOS.",
+      "notes": "Desktop uses right-click; iOS needs long-press or an overflow menu."
+    },
+    {
+      "id": "tests-apple",
+      "title": "Shared tests green on Apple targets",
+      "category": "test",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "actual-platform-core",
+        "actual-pkce",
+        "keychain-token-store"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "commonTest compiles for Apple; `./gradlew :composeApp:iosSimulatorArm64Test` (and/or macosArm64Test) passes. Add appleTest actuals where desktopTest had platform-specific tests. Defer the simulator run if Xcode is missing but ensure compilation.",
+      "notes": "There are 19 commonTest + 7 desktopTest files. Port platform-specific desktop tests (DPAPI store, loopback receiver) to Apple equivalents or guard them."
+    },
+    {
+      "id": "build-ios-sim",
+      "title": "Build + smoke-test the iOS app in the simulator",
+      "category": "build",
+      "platform": [
+        "ios"
+      ],
+      "deps": [
+        "parity-notelist",
+        "parity-editor",
+        "parity-settings-storage",
+        "parity-command-palette",
+        "parity-themes",
+        "tests-apple"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "`./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64` succeeds and the Xcode app builds and boots in an iOS simulator; smoke test create/edit/tag/export a note. DEFER if full Xcode/simulator is unavailable.",
+      "notes": "xcodebuild -scheme iosApp -sdk iphonesimulator; xcrun simctl boot/install/launch."
+    },
+    {
+      "id": "build-macos",
+      "title": "Build + smoke-test the macOS app",
+      "category": "build",
+      "platform": [
+        "macos"
+      ],
+      "deps": [
+        "macos-desktop-dmg"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "macOS app launches (JVM desktop run and/or native binary) and a smoke test (create/edit/tag/theme/export) passes; packageDmg artifact produced. Requires JDK 21.",
+      "notes": "Pragmatic Mac deliverable is the Compose Desktop .dmg."
+    },
+    {
+      "id": "docs-apple",
+      "title": "Update README + docs for iOS/macOS",
+      "category": "docs",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "build-ios-sim",
+        "build-macos"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "README reflects iOS + macOS targets: badges, prerequisites (Xcode, JDK 21), run/build instructions (iosApp scheme, gradle tasks), and updated project structure (appleMain/iosMain/iosApp).",
+      "notes": "Roadmap already promises native iOS/macOS; move them to Features and document how to run."
+    },
+    {
+      "id": "ci-apple",
+      "title": "(Optional) CI workflow building Apple targets",
+      "category": "ci",
+      "platform": [
+        "ios",
+        "macos"
+      ],
+      "deps": [
+        "tests-apple"
+      ],
+      "status": "pending",
+      "attempts": 0,
+      "acceptance": "A GitHub Actions workflow on a macos runner builds the Apple targets and runs shared tests. Skip/defer if the user does not want CI.",
+      "notes": "Use macos-latest, JDK 21, Xcode select; cache Gradle + konan."
+    }
+  ]
+}
