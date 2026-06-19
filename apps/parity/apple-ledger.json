@@ -287,10 +287,12 @@
       "deps": [
         "keychain-token-store"
       ],
-      "status": "pending",
+      "status": "done",
       "attempts": 0,
       "acceptance": "`./gradlew :composeApp:run` launches on macOS and `:composeApp:packageDmg` produces a branded Pebo.dmg. macOS-only crashers are removed (e.g. secure-token-store now works on macOS). App uses the .icns icon and a sensible window. Requires JDK 21.",
-      "notes": "This is the pragmatic, fully-supported 'Mac app' — same codebase/UI as Windows desktop. main.kt already no-ops the Windows title-bar tweak on non-Windows."
+      "notes": "This is the pragmatic, fully-supported 'Mac app' — same codebase/UI as Windows desktop. main.kt already no-ops the Windows title-bar tweak on non-Windows.",
+      "result_note": "Built .app + Pebo-1.0.0.dmg; launched & seeded ~/Pebo/notes; desktopTest green. macOS Keychain gap closed in DesktopSecureTokenStore.",
+      "updated": "2026-06-19T06:55:58Z"
     },
     {
       "id": "macos-native-entry",
@@ -629,5 +631,5 @@
       "notes": "Use macos-latest, JDK 21, Xcode select; cache Gradle + konan."
     }
   ],
-  "updated": "2026-06-19T06:46:32Z"
+  "updated": "2026-06-19T06:55:58Z"
 }
