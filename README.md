@@ -14,6 +14,7 @@ ordinary `.md` files in a folder you control — on your device or your own clou
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1.21-7F52FF?logo=kotlin&logoColor=white)
 ![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.8.2-4285F4?logo=jetpackcompose&logoColor=white)
 ![Desktop](https://img.shields.io/badge/Desktop-Windows%20%7C%20macOS%20%7C%20Linux-2EA043)
+![iOS](https://img.shields.io/badge/iOS-15%2B-000000?logo=apple&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-175%2B%20passing-3FB950)
 ![Storage](https://img.shields.io/badge/files-plain%20.md-555)
 ![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue)
@@ -106,7 +107,9 @@ Choose where your notes live in **Settings → Storage**:
 ### Prerequisites
 
 - **JDK 21** (the project is built and run with JDK 21).
-- That's it — the **Gradle wrapper** is included, so you don't need a separate Gradle install.
+- For the **iOS** app: a full **Xcode** install (Command Line Tools alone don't ship the iOS SDK or
+  simulator) and, optionally, [XcodeGen](https://github.com/yonyz/XcodeGen) to generate the project.
+- Otherwise that's it — the **Gradle wrapper** is included, so you don't need a separate Gradle install.
 
 ### Run the desktop app
 
@@ -138,6 +141,30 @@ This produces a branded, self‑contained installer:
 | Windows | `.msi` | `packageMsi` |
 | macOS | `.dmg` | `packageDmg` |
 | Linux | `.deb` | `packageDeb` |
+
+> **Packaging on macOS with a Homebrew JDK?** `jpackage` rejects Homebrew's JDK by default. Either use
+> a vendor build such as Amazon Corretto 21, or pass
+> `-Pcompose.desktop.packaging.checkJdkVendor=false` to the `packageDmg` task.
+
+### Run on iOS
+
+The iOS app reuses the exact same Compose UI as the desktop app. You need a **full Xcode install**
+(Command Line Tools alone don't include the iOS SDK) and **JDK 21**.
+
+```bash
+# Generate the Xcode project from iosApp/project.yml (brew install xcodegen)
+cd iosApp && xcodegen generate && cd ..
+
+# Open it and run on a simulator…
+open iosApp/iosApp.xcodeproj
+
+# …or build the shared framework + app from the command line
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp \
+  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' build
+```
+
+See [`iosApp/README.md`](iosApp/README.md) for details on the SwiftUI ↔ Kotlin bridge.
 
 ### Enable cloud sync (optional)
 
@@ -193,8 +220,8 @@ pinned: true
 | Native integration | JNA 5.17.0 |
 | Build | Gradle (wrapper included), JDK 21 |
 
-The codebase is structured as `commonMain` (shared logic + UI) with a thin `desktopMain` actual
-layer, so platform targets can be added without rewriting the core.
+The codebase is structured as `commonMain` (shared logic + UI) with thin `desktopMain` (JVM) and
+`iosMain` (Kotlin/Native) actual layers, so the same core renders natively on every target.
 
 ---
 
@@ -213,9 +240,13 @@ pebo/
 │     │  ├─ export/                # HTML / PDF / DOCX / JPG / PNG export
 │     │  ├─ sync/                  # Sync engine + OneDrive / Google Drive remotes
 │     │  └─ auth/                  # OAuth PKCE + secure token storage
-│     ├─ desktopMain/kotlin/app/pebo/   # Desktop entry point + platform actuals
-│     └─ desktopTest/              # Desktop-specific tests
-└─ gradle/                         # Version catalog + wrapper
+│     ├─ desktopMain/kotlin/app/pebo/   # Desktop (JVM) entry point + platform actuals
+│     ├─ iosMain/kotlin/app/pebo/        # iOS entry (MainViewController) + Kotlin/Native actuals
+│     ├─ commonTest/ + desktopTest/      # Shared + desktop tests
+│     └─ …
+├─ iosApp/                          # SwiftUI host for the iOS app (XcodeGen project.yml)
+├─ apps/parity/                     # Apple (iOS+macOS) parity loop: ledger, runner, prompt
+└─ gradle/                          # Version catalog + wrapper
 ```
 
 ---
@@ -235,7 +266,8 @@ pebo/
 
 Pebo is built on a shared Kotlin Multiplatform core specifically so it can grow beyond the desktop:
 
-- 📱 **Native iOS, Android, and macOS app targets** from the same codebase.
+- 📱 **Native iOS** + **macOS** + **Android** from the same codebase — the iOS target compiles today
+  (`iosApp/`); macOS ships as a packaged `.dmg`.
 - ☁️ **One‑click cloud sign‑in** once public OAuth client IDs are bundled for OneDrive and Google
   Drive.
 - 🗂️ **Recursive vault import** — map a deep folder tree of `.md` into the note hierarchy.
