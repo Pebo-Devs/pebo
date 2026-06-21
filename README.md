@@ -14,7 +14,7 @@ ordinary `.md` files in a folder you control — on your device or your own clou
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1.21-7F52FF?logo=kotlin&logoColor=white)
 ![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.8.2-4285F4?logo=jetpackcompose&logoColor=white)
 ![Desktop](https://img.shields.io/badge/Desktop-Windows%20%7C%20macOS%20%7C%20Linux-2EA043)
-![iOS](https://img.shields.io/badge/iOS-15%2B-000000?logo=apple&logoColor=white)
+![iOS](https://img.shields.io/badge/iOS%20%7C%20iPadOS-15%2B-000000?logo=apple&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-175%2B%20passing-3FB950)
 ![Storage](https://img.shields.io/badge/files-plain%20.md-555)
 ![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue)
@@ -146,10 +146,13 @@ This produces a branded, self‑contained installer:
 > a vendor build such as Amazon Corretto 21, or pass
 > `-Pcompose.desktop.packaging.checkJdkVendor=false` to the `packageDmg` task.
 
-### Run on iOS
+### Run on iOS &amp; iPadOS
 
-The iOS app reuses the exact same Compose UI as the desktop app. You need a **full Xcode install**
-(Command Line Tools alone don't include the iOS SDK) and **JDK 21**.
+The app is **universal (iPhone + iPad)** and reuses the exact same Compose UI as the desktop app.
+It adapts to the screen: a single column on iPhone, a two‑pane **list + editor** on a compact iPad
+(e.g. an 11"/mini in portrait), and the full three‑pane **sidebar + list + editor** desktop
+experience on a large iPad or any iPad in landscape. You need a **full Xcode install** (Command Line
+Tools alone don't include the iOS SDK) and **JDK 21**.
 
 ```bash
 # Generate the Xcode project from iosApp/project.yml (brew install xcodegen)
@@ -158,10 +161,12 @@ cd iosApp && xcodegen generate && cd ..
 # Open it and run on a simulator…
 open iosApp/iosApp.xcodeproj
 
-# …or build the shared framework + app from the command line
+# …or build the shared framework + app from the command line (iPhone or iPad simulator)
 ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
 xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp \
   -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' build
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp \
+  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M5)' build
 ```
 
 See [`iosApp/README.md`](iosApp/README.md) for details on the SwiftUI ↔ Kotlin bridge.
@@ -266,8 +271,8 @@ pebo/
 
 Pebo is built on a shared Kotlin Multiplatform core specifically so it can grow beyond the desktop:
 
-- 📱 **Native iOS** + **macOS** + **Android** from the same codebase — the iOS target compiles today
-  (`iosApp/`); macOS ships as a packaged `.dmg`.
+- 📱 **Native iOS / iPadOS** + **macOS** + **Android** from the same codebase — the universal
+  iPhone + iPad target compiles and runs today (`iosApp/`); macOS ships as a packaged `.dmg`.
 - ☁️ **One‑click cloud sign‑in** once public OAuth client IDs are bundled for OneDrive and Google
   Drive.
 - 🗂️ **Recursive vault import** — map a deep folder tree of `.md` into the note hierarchy.

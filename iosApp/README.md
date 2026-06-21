@@ -1,8 +1,11 @@
 # Pebo for iOS
 
-This is the SwiftUI host for the **iOS** build of Pebo. The entire UI and all logic come from the
-shared Kotlin Multiplatform / Compose Multiplatform code in `../composeApp`; this target only embeds
-the shared `ComposeApp` framework and shows it.
+This is the SwiftUI host for the **iOS & iPadOS** build of Pebo — a **universal (iPhone + iPad)**
+app (`TARGETED_DEVICE_FAMILY = "1,2"`). The entire UI and all logic come from the shared Kotlin
+Multiplatform / Compose Multiplatform code in `../composeApp`; this target only embeds the shared
+`ComposeApp` framework and shows it. The Compose UI adapts to the size class: one column on iPhone,
+a two‑pane list + editor on a compact iPad, and the full three‑pane desktop layout on a large iPad
+or in landscape.
 
 ```
 iosApp/
