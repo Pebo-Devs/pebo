@@ -108,6 +108,8 @@ fun App(vm: NotesViewModel, dataDir: String) {
                                 Editor(vm, Modifier.weight(1f))
                             }
                         }
+                    } else if (maxWidth >= 600.dp) {
+                        MediumLayout(vm, onOpenCommandPalette = { paletteOpen = true })
                     } else {
                         CompactLayout(vm, onOpenCommandPalette = { paletteOpen = true })
                     }
@@ -141,6 +143,50 @@ private fun CompactLayout(vm: NotesViewModel, onOpenCommandPalette: () -> Unit) 
                 onMenu = { scope.launch { drawer.open() } },
                 onOpenCommandPalette = onOpenCommandPalette,
             )
+        }
+    }
+}
+
+/**
+ * Tablet layout for medium widths (≈600–840dp, e.g. an iPad in portrait): the note list and editor
+ * sit side by side so writing context is always visible, while the library/tag sidebar is one tap
+ * away in a drawer. Wider than this we promote the sidebar to a permanent pane (see [App]).
+ */
+@Composable
+private fun MediumLayout(vm: NotesViewModel, onOpenCommandPalette: () -> Unit) {
+    val drawer = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    val visibleNotes = vm.visibleNotes
+    LaunchedEffect(visibleNotes.map { it.id }, vm.filter, vm.query) {
+        if (vm.selectedNote == null && visibleNotes.isNotEmpty()) {
+            vm.select(visibleNotes.first().id)
+        }
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawer,
+        drawerContent = {
+            ModalDrawerSheet {
+                Sidebar(vm, Modifier.width(280.dp))
+            }
+        },
+    ) {
+        if (vm.focusMode) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Editor(vm, Modifier.fillMaxHeight().widthIn(max = 920.dp).fillMaxWidth())
+            }
+        } else {
+            Row(Modifier.fillMaxSize()) {
+                NoteList(
+                    vm,
+                    Modifier.width(320.dp),
+                    onMenu = { scope.launch { drawer.open() } },
+                    onOpenCommandPalette = onOpenCommandPalette,
+                )
+                VPaneDivider()
+                Editor(vm, Modifier.weight(1f))
+            }
         }
     }
 }
