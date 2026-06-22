@@ -102,18 +102,33 @@ android {
     }
 }
 
+val appVersion: String = (findProperty("appVersion") as String?)
+    ?.removePrefix("v")
+    ?.trim()
+    ?.takeIf { Regex("""\d+(\.\d+){0,2}""").matches(it) }
+    ?: "1.0.0"
+
 compose.desktop {
     application {
         mainClass = "app.pebo.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "Pebo"
-            packageVersion = "1.0.0"
+            packageVersion = appVersion
             windows {
                 iconFile.set(rootProject.file("branding/pebo-icon.ico"))
+                menu = true
+                menuGroup = "Pebo"
+                shortcut = true
+                dirChooser = true
+                perUserInstall = false
+                upgradeUuid = "21d745eb-b400-4903-8856-4f5eeacc3748"
             }
             macOS {
                 iconFile.set(rootProject.file("branding/pebo-logo.icns"))
+                bundleID = "app.pebo"
+                dockName = "Pebo"
+                appCategory = "public.app-category.productivity"
             }
             linux {
                 iconFile.set(rootProject.file("branding/pebo-logo-512.png"))
