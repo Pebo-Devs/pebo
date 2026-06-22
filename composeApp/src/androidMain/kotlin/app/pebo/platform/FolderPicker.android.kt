@@ -19,3 +19,6 @@ actual suspend fun pickFolder(title: String, initialPath: String?): String? {
         ?.takeIf { it.scheme == "content" }
     return SafFolderPicker.pickTree(initialUri)?.toString()
 }
+
+/** Android always has the system document-tree picker available. */
+actual fun folderPickerSupported(): Boolean = true
