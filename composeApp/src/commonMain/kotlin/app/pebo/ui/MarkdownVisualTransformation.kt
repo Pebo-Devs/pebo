@@ -48,7 +48,7 @@ class MarkdownVisualTransformation(
         val codeRanges = fencedCodeRanges(raw)
         fun inCode(index: Int): Boolean = codeRanges.any { index in it }
 
-        // Render bullet-list markers (-, *, +) as a tinted "•" glyph, Bear-style. The swap is 1:1 in
+        // Render bullet-list markers (-, *, +) as a tinted "•" glyph. The swap is 1:1 in
         // length so OffsetMapping.Identity stays exact and the on-disk `.md` keeps its plain markers.
         val bulletPositions = ArrayList<Int>()
         val display = bulletDisplay(raw, ::inCode, bulletPositions)
@@ -190,5 +190,5 @@ class MarkdownVisualTransformation(
     }
 }
 
-/** Shared with the editor: matches Bear-style `#tag` and nested `#a/b` tags, not `# ` headings. */
+/** Shared with the editor: matches `#tag` and nested `#a/b` tags, not `# ` headings. */
 internal val hashtagRegex = Regex("(?<=^|\\s)#[A-Za-z0-9_][A-Za-z0-9_/-]*")

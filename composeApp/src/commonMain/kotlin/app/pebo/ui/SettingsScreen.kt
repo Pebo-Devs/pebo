@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
@@ -55,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -661,7 +663,7 @@ private fun GeneralPanel() {
 @Composable
 private fun AboutPanel() {
     val scheme = MaterialTheme.colorScheme
-    PanelHeader("About", "Pebo — a Bear-inspired, markdown-first notes app.")
+    PanelHeader("About", "Pebo — a fast, markdown-first notes app.")
     SettingsCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
@@ -682,6 +684,29 @@ private fun AboutPanel() {
             style = MaterialTheme.typography.bodyMedium,
             color = scheme.onSurfaceVariant,
         )
+        Spacer(Modifier.height(14.dp))
+        val uriHandler = LocalUriHandler.current
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { uriHandler.openUri("https://pebo.app") }
+                .padding(vertical = 3.dp, horizontal = 2.dp),
+        ) {
+            Icon(
+                Icons.Filled.Language,
+                contentDescription = "Website",
+                tint = scheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "pebo.app",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = scheme.primary,
+            )
+        }
     }
 }
 

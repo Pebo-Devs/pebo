@@ -46,7 +46,7 @@ private fun isTagChar(c: Char): Boolean =
  * Decides whether the caret sits inside a `#tag` the user is typing, and if so returns the token
  * span + query. Pure and platform-free so it can be unit-tested.
  *
- * Rules (Bear-compatible): the `#` must start a tag — preceded by start-of-text, whitespace, or an
+ * Rules: the `#` must start a tag — preceded by start-of-text, whitespace, or an
  * opening `(`/`[`/`>` — never another `#` (that is a heading) and never mid-word. The caret must be
  * outside fenced code blocks. An empty query (caret right after `#`) is valid and lists all tags.
  */

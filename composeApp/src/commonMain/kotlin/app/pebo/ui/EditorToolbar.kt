@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Bear-style formatting bar that edits the raw Markdown source directly via [MarkdownEditing], so
+ * Formatting bar that edits the raw Markdown source directly via [MarkdownEditing], so
  * every element — including fenced code, tables, task lists and images — is inserted as real, fully
  * round-trippable Markdown. Heading/list/quote buttons light up when the caret is already inside one.
  */
