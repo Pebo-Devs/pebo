@@ -74,7 +74,7 @@ class NotesViewModel(
 
     /**
      * Distraction-free writing mode: the sidebar + note list collapse away and the editor becomes a
-     * centered, wide-margin canvas (iA Writer / clean "focus"). UI-only, never persisted.
+     * centered, wide-margin canvas (a distraction-free "focus" mode). UI-only, never persisted.
      */
     var focusMode by mutableStateOf(false)
         private set
