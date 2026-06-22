@@ -13,6 +13,7 @@ class DesktopOAuthSignIn(
     suspend fun signIn(
         provider: OAuthProviderConfig,
         clientId: String,
+        clientSecret: String? = null,
         timeoutMillis: Long = 120_000,
     ): StoredOAuthTokens {
         require(clientId.isNotBlank()) { "OAuth client id is required for ${provider.displayName}" }
@@ -23,6 +24,7 @@ class DesktopOAuthSignIn(
                 provider = provider,
                 clientId = clientId,
                 redirectUri = receiver.redirectUri,
+                clientSecret = clientSecret,
             )
             openBrowser(AuthorizationRequest(config, state, pkce).url())
             val redirect = receiver.await(timeoutMillis)

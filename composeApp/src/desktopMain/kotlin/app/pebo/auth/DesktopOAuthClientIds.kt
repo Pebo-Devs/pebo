@@ -7,6 +7,13 @@ object DesktopOAuthClientIds {
             OAuthProviderId.OneDrive -> propertyOrEnv("pebo.onedrive.clientId", "PEBO_ONEDRIVE_CLIENT_ID")
         }?.takeIf { it.isNotBlank() }
 
+    // Only Google's installed-app flow needs a client secret; OneDrive is a public client.
+    fun clientSecretFor(provider: OAuthProviderId): String? =
+        when (provider) {
+            OAuthProviderId.GoogleDrive -> propertyOrEnv("pebo.google.clientSecret", "PEBO_GOOGLE_CLIENT_SECRET")
+            OAuthProviderId.OneDrive -> null
+        }?.takeIf { it.isNotBlank() }
+
     private fun propertyOrEnv(property: String, env: String): String? =
         System.getProperty(property)?.takeIf { it.isNotBlank() }
             ?: System.getenv(env)?.takeIf { it.isNotBlank() }

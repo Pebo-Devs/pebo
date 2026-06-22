@@ -13,6 +13,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class OAuthTokenClientTest {
@@ -32,6 +34,49 @@ class OAuthTokenClientTest {
         assertTrue(requestBody.contains("code=code-123"))
         assertTrue(requestBody.contains("code_verifier=verifier-456"))
         assertTrue(requestBody.contains("redirect_uri=http%3A%2F%2F127.0.0.1%3A4567%2Fcb"))
+        assertFalse(requestBody.contains("client_secret"))
+    }
+
+    @Test
+    fun sendsClientSecretWhenConfigured() = runBlocking {
+        var requestBody = ""
+        val client = OAuthTokenClient(mockJsonClient { body ->
+            requestBody = body
+            """{"access_token":"access","refresh_token":"refresh","expires_in":3600,"token_type":"Bearer"}"""
+        })
+
+        client.exchangeCode(googleConfig(secret = "google-secret"), code = "code-123", verifier = "verifier-456")
+
+        assertTrue(requestBody.contains("client_secret=google-secret"))
+    }
+
+    @Test
+    fun refreshSendsClientSecretWhenConfigured() = runBlocking {
+        var requestBody = ""
+        val client = OAuthTokenClient(mockJsonClient { body ->
+            requestBody = body
+            """{"access_token":"new-access","expires_in":1800,"token_type":"Bearer"}"""
+        })
+
+        client.refresh(googleConfig(secret = "google-secret"), refreshToken = "existing-refresh")
+
+        assertTrue(requestBody.contains("grant_type=refresh_token"))
+        assertTrue(requestBody.contains("client_secret=google-secret"))
+    }
+
+    @Test
+    fun surfacesProviderErrorBodyOnFailure() = runBlocking {
+        val client = OAuthTokenClient(
+            mockJsonClient(status = HttpStatusCode.BadRequest) {
+                """{"error":"invalid_request","error_description":"client_secret is missing."}"""
+            },
+        )
+
+        val failure = assertFailsWith<IllegalStateException> {
+            client.exchangeCode(googleConfig(), code = "code-123", verifier = "verifier-456")
+        }
+        assertTrue(failure.message!!.contains("Google Drive token request failed (400)"))
+        assertTrue(failure.message!!.contains("client_secret is missing."))
     }
 
     @Test
@@ -50,14 +95,18 @@ class OAuthTokenClientTest {
         assertTrue(requestBody.contains("refresh_token=existing-refresh"))
     }
 
-    private fun googleConfig(): OAuthClientConfig =
+    private fun googleConfig(secret: String? = null): OAuthClientConfig =
         OAuthClientConfig(
             provider = OAuthProviderConfig.GoogleDrive,
             clientId = "client-id",
             redirectUri = "http://127.0.0.1:4567/cb",
+            clientSecret = secret,
         )
 
-    private fun mockJsonClient(handler: (String) -> String): HttpClient =
+    private fun mockJsonClient(
+        status: HttpStatusCode = HttpStatusCode.OK,
+        handler: (String) -> String,
+    ): HttpClient =
         HttpClient(MockEngine) {
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })
@@ -70,7 +119,7 @@ class OAuthTokenClientTest {
                     }
                     respond(
                         content = handler(body),
-                        status = HttpStatusCode.OK,
+                        status = status,
                         headers = headersOf(HttpHeaders.ContentType, "application/json"),
                     )
                 }

@@ -142,3 +142,19 @@ compose.resources {
     packageOfResClass = "app.pebo.resources"
     generateResClass = always
 }
+
+// Forward OAuth public client ids to the desktop run task without committing them to source.
+// Usage: ./gradlew :composeApp:run -PpeboOnedriveClientId=<id> [-PpeboGoogleClientId=<id> -PpeboGoogleClientSecret=<secret>]
+// Google's installed-app flow additionally requires a client secret (not confidential for desktop apps).
+tasks.withType<JavaExec>().configureEach {
+    mapOf(
+        "peboOnedriveClientId" to "pebo.onedrive.clientId",
+        "peboGoogleClientId" to "pebo.google.clientId",
+        "peboGoogleClientSecret" to "pebo.google.clientSecret",
+    ).forEach { (gradleProp, systemProp) ->
+        (findProperty(gradleProp) as String?)?.takeIf { it.isNotBlank() }?.let {
+            systemProperty(systemProp, it)
+        }
+    }
+}
+
