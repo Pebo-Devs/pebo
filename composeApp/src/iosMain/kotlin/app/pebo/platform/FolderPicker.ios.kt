@@ -9,7 +9,7 @@ package app.pebo.platform
  * security-scoped bookmark — but that is inherently asynchronous, so it would also require making the
  * shared `pickFolder` contract suspendable.
  */
-actual fun pickFolder(title: String, initialPath: String?): String? = null
+actual suspend fun pickFolder(title: String, initialPath: String?): String? = null
 
 /** iOS keeps notes in the app's sandboxed Documents directory, so there is no folder chooser. */
 actual fun folderPickerSupported(): Boolean = false

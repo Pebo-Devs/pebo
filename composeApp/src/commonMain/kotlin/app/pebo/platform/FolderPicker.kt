@@ -1,15 +1,20 @@
 package app.pebo.platform
 
 /**
- * Opens the platform's native folder chooser and returns the absolute path of the selected
- * directory, or `null` if the user cancelled. Implemented per-platform via `actual`:
- *  - Desktop (JVM): native shell dialog on Windows, `FileDialog` (directory mode) on macOS.
+ * Opens the platform's native folder chooser and returns a handle to the selected directory — an
+ * absolute filesystem path on desktop, or an Android tree `content://` URI — or `null` if the user
+ * cancelled. Implemented per-platform via `actual`:
+ *  - Desktop (JVM): native shell dialog on Windows, `FileDialog` (directory mode) on macOS; returns
+ *    an absolute filesystem path.
+ *  - Android: Storage Access Framework `OPEN_DOCUMENT_TREE`; returns the persisted tree `content://`
+ *    URI string (read/write access is kept across launches via `takePersistableUriPermission`).
  *  - iOS: not supported — notes live in the app's sandboxed Documents directory.
  *
- * Implementations may block until the modal dialog is dismissed, so callers on a UI thread should
- * expect the call to return only after the user chooses or cancels.
+ * `suspend` so the asynchronous Android document-tree picker can be awaited without blocking the UI
+ * thread (no ANR); the call returns only after the user chooses or cancels. [initialPath] is the
+ * handle returned by a previous call (path or tree URI) used to hint the picker's start location.
  */
-expect fun pickFolder(title: String, initialPath: String?): String?
+expect suspend fun pickFolder(title: String, initialPath: String?): String?
 
 /**
  * Whether [pickFolder] can present a chooser on this platform. Used to hide the "change folder"
