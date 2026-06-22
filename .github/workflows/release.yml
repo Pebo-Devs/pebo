@@ -45,7 +45,7 @@ jobs:
 
       - name: Package MSI and EXE
         shell: bash
-        run: ./gradlew :composeApp:packageMsi :composeApp:packageExe --stacktrace
+        run: ./gradlew :composeApp:packageMsi :composeApp:packageExe -PappVersion=${{ github.ref_name }} --stacktrace
 
       - name: Collect artifacts
         shell: bash
@@ -88,7 +88,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Package DMG
-        run: ./gradlew :composeApp:packageDmg --stacktrace
+        run: ./gradlew :composeApp:packageDmg -PappVersion=${{ github.ref_name }} --stacktrace
 
       - name: Collect artifacts
         run: |
@@ -129,7 +129,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Package DEB
-        run: ./gradlew :composeApp:packageDeb --stacktrace
+        run: ./gradlew :composeApp:packageDeb -PappVersion=${{ github.ref_name }} --stacktrace
 
       - name: Collect artifacts
         run: |
