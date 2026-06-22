@@ -14,6 +14,7 @@ ordinary `.md` files in a folder you control — on your device or your own clou
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1.21-7F52FF?logo=kotlin&logoColor=white)
 ![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.8.2-4285F4?logo=jetpackcompose&logoColor=white)
 ![Desktop](https://img.shields.io/badge/Desktop-Windows%20%7C%20macOS%20%7C%20Linux-2EA043)
+![Android](https://img.shields.io/badge/Android-API%2030%2B-3DDC84?logo=android&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-175%2B%20passing-3FB950)
 ![Storage](https://img.shields.io/badge/files-plain%20.md-555)
 ![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue)
@@ -124,6 +125,26 @@ Choose where your notes live in **Settings → Storage**:
 ./gradlew :composeApp:desktopTest
 ```
 
+### Run the Android app
+
+The Android app is the **same Compose UI** as the desktop — `App.kt` automatically switches to a
+compact, single-pane layout below 840 dp, so the phone gets the identical notes / editor / tag-tree
+experience.
+
+```bash
+# Build a debug APK -> composeApp/build/outputs/apk/debug/
+./gradlew :composeApp:assembleDebug
+
+# Install on a connected device or running emulator
+./gradlew :composeApp:installDebug
+```
+
+Requires the Android SDK (set `ANDROID_HOME`, or add a `local.properties` with `sdk.dir=...`).
+Notes live in the app's external files dir by default; **Storage → Change folder** lets you pick any
+folder via the Storage Access Framework. Build a release artifact with
+`./gradlew :composeApp:assembleRelease` (APK) or `:composeApp:bundleRelease` (AAB) — sign it with
+your own keystore via a `signingConfigs` block (or Android Studio's *Generate Signed Bundle*).
+
 ### Build a native installer
 
 ```bash
@@ -191,6 +212,7 @@ pinned: true
 | Rich text | richeditor‑compose 1.0.0‑rc13 |
 | Networking / OAuth | Ktor 3.2.0 + kotlinx.serialization 1.9.0 |
 | Native integration | JNA 5.17.0 |
+| Targets | Desktop (Windows / macOS / Linux) · **Android** (minSdk 30) |
 | Build | Gradle (wrapper included), JDK 21 |
 
 The codebase is structured as `commonMain` (shared logic + UI) with a thin `desktopMain` actual
@@ -214,6 +236,7 @@ pebo/
 │     │  ├─ sync/                  # Sync engine + OneDrive / Google Drive remotes
 │     │  └─ auth/                  # OAuth PKCE + secure token storage
 │     ├─ desktopMain/kotlin/app/pebo/   # Desktop entry point + platform actuals
+│     ├─ androidMain/kotlin/app/pebo/   # Android Activity + actuals (SAF storage, export, OAuth)
 │     └─ desktopTest/              # Desktop-specific tests
 └─ gradle/                         # Version catalog + wrapper
 ```
@@ -235,7 +258,8 @@ pebo/
 
 Pebo is built on a shared Kotlin Multiplatform core specifically so it can grow beyond the desktop:
 
-- 📱 **Native iOS, Android, and macOS app targets** from the same codebase.
+- 📱 **Native iOS and macOS** app targets from the same codebase (the **Android** app already
+  ships from this shared core).
 - ☁️ **One‑click cloud sign‑in** once public OAuth client IDs are bundled for OneDrive and Google
   Drive.
 - 🗂️ **Recursive vault import** — map a deep folder tree of `.md` into the note hierarchy.

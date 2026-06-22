@@ -82,6 +82,7 @@ fun App(vm: NotesViewModel, dataDir: String) {
         ) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 if (vm.showSettings) {
+                    PlatformBackHandler(enabled = true) { vm.closeSettings() }
                     SettingsScreen(vm, dataDir, onBack = { vm.closeSettings() })
                     return@Surface
                 }
@@ -115,6 +116,9 @@ fun App(vm: NotesViewModel, dataDir: String) {
             }
 
             CommandPalette(vm, visible = paletteOpen, onDismiss = { paletteOpen = false })
+
+            PlatformBackHandler(enabled = paletteOpen) { paletteOpen = false }
+            PlatformBackHandler(enabled = !paletteOpen && vm.focusMode) { vm.exitFocusMode() }
         }
 
         LaunchedEffect(Unit) { rootFocus.requestFocus() }
@@ -133,7 +137,9 @@ private fun CompactLayout(vm: NotesViewModel) {
             }
         },
     ) {
+        PlatformBackHandler(enabled = drawer.isOpen) { scope.launch { drawer.close() } }
         if (vm.selectedNote != null) {
+            PlatformBackHandler(enabled = true) { vm.select(null) }
             Editor(vm, onBack = { vm.select(null) })
         } else {
             NoteList(vm, onMenu = { scope.launch { drawer.open() } })
