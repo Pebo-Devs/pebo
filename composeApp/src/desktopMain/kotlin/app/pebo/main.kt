@@ -96,4 +96,3 @@ private interface DwmApi : StdCallLibrary {
         val INSTANCE: DwmApi = Native.load("dwmapi", DwmApi::class.java)
     }
 }
-

@@ -12,6 +12,8 @@ import java.awt.EventQueue
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Desktop folder chooser. Each platform uses a *native* dialog rather than Swing's
@@ -24,9 +26,9 @@ import java.io.File
  *
  * Returns the chosen absolute path, or null on cancel / unsupported platform.
  */
-actual fun pickFolder(title: String, initialPath: String?): String? {
+actual suspend fun pickFolder(title: String, initialPath: String?): String? = withContext(Dispatchers.IO) {
     val os = System.getProperty("os.name", "")
-    return when {
+    when {
         os.startsWith("Windows") -> pickFolderWindows(title)
         os.contains("Mac", ignoreCase = true) -> pickFolderMacOs(title, initialPath)
         else -> null

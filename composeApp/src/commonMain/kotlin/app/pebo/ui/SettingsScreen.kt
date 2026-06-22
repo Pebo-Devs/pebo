@@ -47,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,11 +60,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.pebo.PlatformBackHandler
 import app.pebo.platform.folderPickerSupported
 import app.pebo.platform.pickFolder
 import app.pebo.ui.theme.PeboPalette
 import app.pebo.ui.theme.Palettes
 import app.pebo.ui.theme.ThemeMode
+import kotlinx.coroutines.launch
 
 private enum class SettingsSection(val title: String, val icon: ImageVector) {
     Appearance("Appearance", Icons.Filled.Palette),
@@ -79,153 +82,170 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scheme = MaterialTheme.colorScheme
+    BoxWithConstraints(modifier.fillMaxSize().background(scheme.background)) {
+        if (maxWidth >= 700.dp) {
+            SettingsTwoPane(vm, dataDir, onBack)
+        } else {
+            SettingsCompact(vm, dataDir, onBack)
+        }
+    }
+}
+
+/** Wide layout: persistent left nav + content pane (desktop / tablet). */
+@Composable
+private fun SettingsTwoPane(
+    vm: NotesViewModel,
+    dataDir: String,
+    onBack: () -> Unit,
+) {
     var section by remember { mutableStateOf(SettingsSection.Appearance) }
     val scheme = MaterialTheme.colorScheme
 
-    BoxWithConstraints(modifier.fillMaxSize().background(scheme.background)) {
-        if (maxWidth < 640.dp) {
-            // Compact (phone): one pane at a time — the nav list drills into a section,
-            // and a back arrow returns to the list (so the side nav "closes").
-            var showDetail by remember { mutableStateOf(false) }
-            if (showDetail) {
-                SettingsContent(
-                    vm = vm,
-                    dataDir = dataDir,
-                    section = section,
-                    contentPadding = 20.dp,
-                    onBack = { showDetail = false },
-                    backLabel = "Settings",
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                SettingsNav(
-                    selected = section,
-                    onBack = onBack,
-                    onSelect = { section = it; showDetail = true },
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        } else {
-            // Wide (desktop/tablet): master–detail side by side.
-            Row(Modifier.fillMaxSize()) {
-                SettingsNav(
-                    selected = section,
-                    onBack = onBack,
-                    onSelect = { section = it },
-                    modifier = Modifier.width(248.dp).fillMaxHeight(),
-                )
-                VPaneDivider()
-                SettingsContent(
-                    vm = vm,
-                    dataDir = dataDir,
-                    section = section,
-                    contentPadding = 40.dp,
-                    onBack = null,
-                    backLabel = null,
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsNav(
-    selected: SettingsSection,
-    onBack: () -> Unit,
-    onSelect: (SettingsSection) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier
-            .background(scheme.surface.copy(alpha = 0.55f))
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-    ) {
-        Row(
+    Row(Modifier.fillMaxSize()) {
+        // ── Left nav ────────────────────────────────────────────────────────
+        Column(
             Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .clickable(onClick = onBack)
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .width(248.dp)
+                .fillMaxHeight()
+                .background(scheme.surface.copy(alpha = 0.55f))
+                .padding(horizontal = 14.dp, vertical = 14.dp),
         ) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = scheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
+            BackToNotesRow(onBack)
+            Spacer(Modifier.height(14.dp))
+            Text(
+                "Settings",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface,
+                modifier = Modifier.padding(start = 8.dp),
             )
-            Spacer(Modifier.width(8.dp))
-            Text("Back to notes", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-        }
-        Spacer(Modifier.height(14.dp))
-        Text(
-            "Settings",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = scheme.onSurface,
-            modifier = Modifier.padding(start = 8.dp),
-        )
-        Spacer(Modifier.height(18.dp))
-        SettingsSection.entries.forEach { entry ->
-            NavRow(entry, selected = selected == entry, onClick = { onSelect(entry) })
-            Spacer(Modifier.height(2.dp))
-        }
-    }
-}
-
-@Composable
-private fun SettingsContent(
-    vm: NotesViewModel,
-    dataDir: String,
-    section: SettingsSection,
-    contentPadding: Dp,
-    onBack: (() -> Unit)?,
-    backLabel: String?,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Column(modifier) {
-        if (onBack != null) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable(onClick = onBack)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = scheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    backLabel ?: "Back",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = scheme.onSurfaceVariant,
-                )
+            Spacer(Modifier.height(18.dp))
+            SettingsSection.entries.forEach { entry ->
+                NavRow(entry, selected = section == entry, onClick = { section = entry })
+                Spacer(Modifier.height(2.dp))
             }
         }
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+
+        VPaneDivider()
+
+        // ── Content ─────────────────────────────────────────────────────────
+        Box(Modifier.weight(1f).fillMaxHeight()) {
             Column(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = contentPadding, vertical = 34.dp),
+                    .padding(horizontal = 40.dp, vertical = 34.dp),
             ) {
                 Column(Modifier.widthIn(max = 920.dp).fillMaxWidth()) {
-                    when (section) {
-                        SettingsSection.Appearance -> AppearancePanel(vm)
-                        SettingsSection.Storage -> StoragePanel(vm, dataDir)
-                        SettingsSection.General -> GeneralPanel()
-                        SettingsSection.About -> AboutPanel()
-                    }
+                    SettingsPanel(section, vm, dataDir)
                 }
             }
         }
+    }
+}
+
+/**
+ * Narrow layout (phones): a single-pane master-detail. The section list shows full-width; tapping a
+ * section opens its content full-width with a back arrow that returns to the list (system Back too).
+ * This mirrors the main app's CompactLayout so Settings never crams two panes into a phone width.
+ */
+@Composable
+private fun SettingsCompact(
+    vm: NotesViewModel,
+    dataDir: String,
+    onBack: () -> Unit,
+) {
+    var openSection by remember { mutableStateOf<SettingsSection?>(null) }
+    val current = openSection
+
+    Column(Modifier.fillMaxSize()) {
+        if (current == null) {
+            CompactSettingsBar(title = "Settings", onBack = onBack)
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                SettingsSection.entries.forEach { entry ->
+                    NavRow(entry, selected = false, onClick = { openSection = entry })
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+        } else {
+            PlatformBackHandler(enabled = true) { openSection = null }
+            CompactSettingsBar(title = current.title, onBack = { openSection = null })
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+            ) {
+                SettingsPanel(current, vm, dataDir)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsPanel(section: SettingsSection, vm: NotesViewModel, dataDir: String) {
+    when (section) {
+        SettingsSection.Appearance -> AppearancePanel(vm)
+        SettingsSection.Storage -> StoragePanel(vm, dataDir)
+        SettingsSection.General -> GeneralPanel()
+        SettingsSection.About -> AboutPanel()
+    }
+}
+
+@Composable
+private fun BackToNotesRow(onBack: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onBack)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = scheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text("Back to notes", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun CompactSettingsBar(title: String, onBack: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onBack)
+                .padding(8.dp),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = scheme.onSurface,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.width(6.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = scheme.onSurface,
+        )
     }
 }
 
@@ -472,6 +492,7 @@ private fun Bar(color: Color, fraction: Float, height: Dp = 4.dp) {
 @Composable
 private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
     val scheme = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
     PanelHeader("Storage", "Choose where your notes live. They are always portable .md files you fully own.")
 
     SettingsCard {
@@ -494,23 +515,25 @@ private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
                 Text("Notes folder", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    vm.notesDir.ifBlank { dataDir },
+                    prettyNotesLocation(vm.notesDir.ifBlank { dataDir }),
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(Modifier.width(12.dp))
             if (folderPickerSupported()) {
+                Spacer(Modifier.width(12.dp))
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(9.dp))
                         .background(scheme.primary.copy(alpha = 0.12f))
                         .border(1.dp, scheme.primary.copy(alpha = 0.45f), RoundedCornerShape(9.dp))
                         .clickable {
-                            val picked = pickFolder("Choose your Pebo notes folder", vm.notesDir.ifBlank { dataDir })
-                            if (!picked.isNullOrBlank()) vm.changeNotesDir(picked)
+                            scope.launch {
+                                val picked = pickFolder("Choose your Pebo notes folder", vm.notesDir.ifBlank { dataDir })
+                                if (!picked.isNullOrBlank()) vm.changeNotesDir(picked)
+                            }
                         }
                         .padding(horizontal = 15.dp, vertical = 9.dp),
                 ) {
@@ -520,11 +543,7 @@ private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
         }
         Spacer(Modifier.height(11.dp))
         Text(
-            if (folderPickerSupported()) {
-                "Pick any folder on this device — your notes/ and .trash/ live inside it as portable .md files you fully own. Switching folders reloads the workspace instantly."
-            } else {
-                "On this device, your notes/ and .trash/ live as portable .md files inside the app's Documents folder, shown above."
-            },
+            "Pick any folder on this device — your notes/ and .trash/ live inside it as portable .md files you fully own. Switching folders reloads the workspace instantly.",
             style = MaterialTheme.typography.bodySmall,
             color = scheme.onSurfaceVariant.copy(alpha = 0.82f),
         )
@@ -584,6 +603,45 @@ private fun StatusBadge(label: String, active: Boolean) {
     Box(Modifier.clip(RoundedCornerShape(50)).background(bg).padding(horizontal = 10.dp, vertical = 4.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = fg)
     }
+}
+
+/**
+ * Renders the notes-folder handle for display. Real filesystem paths (desktop, and Android's default
+ * folder) are shown verbatim. Android Storage Access Framework tree URIs — what
+ * `content://…/tree/primary%3ADocuments%2FPebo` looks like raw — are decoded into a readable folder
+ * label such as `Documents/Pebo`, so the card reads the same as the desktop path it mirrors.
+ */
+private fun prettyNotesLocation(raw: String): String {
+    if (!raw.startsWith("content://")) return raw
+    val marker = "/tree/"
+    val start = raw.indexOf(marker)
+    if (start < 0) return raw
+    var encodedId = raw.substring(start + marker.length)
+    val nextSegment = encodedId.indexOf('/') // tree URIs may append a /document/… part
+    if (nextSegment >= 0) encodedId = encodedId.substring(0, nextSegment)
+    val decoded = percentDecode(encodedId)
+    return decoded.substringAfter(':', decoded).ifBlank { decoded }
+}
+
+/** Minimal percent-decoder for SAF document ids (folder labels are effectively ASCII). */
+private fun percentDecode(value: String): String {
+    if ('%' !in value) return value
+    val sb = StringBuilder(value.length)
+    var i = 0
+    while (i < value.length) {
+        val c = value[i]
+        if (c == '%' && i + 2 < value.length) {
+            val code = value.substring(i + 1, i + 3).toIntOrNull(16)
+            if (code != null) {
+                sb.append(code.toChar())
+                i += 3
+                continue
+            }
+        }
+        sb.append(c)
+        i++
+    }
+    return sb.toString()
 }
 
 // ── General / About ─────────────────────────────────────────────────────────
