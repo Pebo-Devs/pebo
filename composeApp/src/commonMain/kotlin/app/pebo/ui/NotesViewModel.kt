@@ -9,6 +9,9 @@ import app.pebo.core.nowIso
 import app.pebo.data.AppPreferences
 import app.pebo.data.NoteStore
 import app.pebo.data.PREF_NOTES_DIR
+import app.pebo.sync.CloudStatus
+import app.pebo.sync.CloudSyncController
+import app.pebo.sync.CloudSyncState
 import app.pebo.ui.theme.Palettes
 import app.pebo.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -54,8 +57,12 @@ class NotesViewModel(
     private val prefs: AppPreferences = AppPreferences.NoOp,
     initialNotesDir: String = "",
     private val storeFactory: ((String) -> NoteStore)? = null,
+    private val cloudSync: CloudSyncController? = null,
 ) {
     private var store: NoteStore = store
+
+    /** Cloud providers with a configured OAuth client id, so the UI can offer them at runtime. */
+    private val cloudConfigured: Set<StorageProvider> = cloudSync?.configuredProviders() ?: emptySet()
 
     var active by mutableStateOf<List<Note>>(emptyList())
         private set
@@ -79,6 +86,10 @@ class NotesViewModel(
     var focusMode by mutableStateOf(false)
         private set
     var storageProvider by mutableStateOf(StorageProvider.Local)
+        private set
+
+    /** Live status of the active cloud connection (connecting / syncing / connected / error). */
+    var cloudSyncState by mutableStateOf(CloudSyncState())
         private set
     var themeMode by mutableStateOf(ThemeMode.System)
         private set
@@ -328,8 +339,45 @@ class NotesViewModel(
         return true
     }
 
+    /** A provider is selectable if it works without setup (Local) or has a configured cloud client id. */
+    fun isStorageSelectable(provider: StorageProvider): Boolean =
+        provider.available || provider in cloudConfigured
+
     fun selectStorage(provider: StorageProvider) {
-        if (provider.available) storageProvider = provider
+        if (!isStorageSelectable(provider)) return
+        storageProvider = provider
+        if (provider == StorageProvider.Local) {
+            cloudSyncState = CloudSyncState()
+            return
+        }
+        val controller = cloudSync ?: return
+        cloudSyncState = CloudSyncState(CloudStatus.Connecting, provider, "Connecting to ${provider.displayName}…")
+        scope.launch {
+            cloudSyncState = runCatching { controller.connect(provider, store, notesDir) }
+                .getOrElse { CloudSyncState(CloudStatus.Error, provider, it.message ?: "Couldn't connect.") }
+            if (cloudSyncState.status == CloudStatus.Connected) refresh()
+        }
+    }
+
+    fun syncCloudNow() {
+        val controller = cloudSync ?: return
+        val provider = storageProvider
+        if (provider == StorageProvider.Local) return
+        cloudSyncState = CloudSyncState(CloudStatus.Syncing, provider, "Syncing ${provider.displayName}…")
+        scope.launch {
+            cloudSyncState = runCatching { controller.sync(provider, store, notesDir) }
+                .getOrElse { CloudSyncState(CloudStatus.Error, provider, it.message ?: "Sync failed.") }
+            if (cloudSyncState.status == CloudStatus.Connected) refresh()
+        }
+    }
+
+    fun disconnectCloud() {
+        val controller = cloudSync
+        val provider = storageProvider
+        storageProvider = StorageProvider.Local
+        cloudSyncState = CloudSyncState()
+        if (controller == null || provider == StorageProvider.Local) return
+        scope.launch { runCatching { controller.disconnect(provider) } }
     }
 
     /**

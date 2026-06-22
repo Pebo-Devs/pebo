@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -65,6 +66,8 @@ import androidx.compose.ui.unit.dp
 import app.pebo.PlatformBackHandler
 import app.pebo.platform.folderPickerSupported
 import app.pebo.platform.pickFolder
+import app.pebo.sync.CloudStatus
+import app.pebo.sync.CloudSyncState
 import app.pebo.ui.theme.PeboPalette
 import app.pebo.ui.theme.Palettes
 import app.pebo.ui.theme.ThemeMode
@@ -503,9 +506,14 @@ private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
             StorageRow(
                 provider = provider,
                 selected = vm.storageProvider == provider,
+                selectable = vm.isStorageSelectable(provider),
                 onSelect = { vm.selectStorage(provider) },
             )
         }
+    }
+
+    if (vm.storageProvider != StorageProvider.Local) {
+        CloudSyncCard(vm, vm.cloudSyncState)
     }
 
     Spacer(Modifier.height(18.dp))
@@ -556,6 +564,7 @@ private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
 private fun StorageRow(
     provider: StorageProvider,
     selected: Boolean,
+    selectable: Boolean,
     onSelect: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -569,7 +578,7 @@ private fun StorageRow(
                 if (selected) scheme.primary.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.4f),
                 RoundedCornerShape(12.dp),
             )
-            .clickable(enabled = provider.available, onClick = onSelect)
+            .clickable(enabled = selectable, onClick = onSelect)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -587,13 +596,18 @@ private fun StorageRow(
                 provider.displayName,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = if (provider.available) scheme.onSurface else scheme.onSurface.copy(alpha = 0.55f),
+                color = if (selectable) scheme.onSurface else scheme.onSurface.copy(alpha = 0.55f),
             )
             Spacer(Modifier.height(2.dp))
             Text(provider.description, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(10.dp))
-        StatusBadge(provider.statusLabel, active = provider.available)
+        val (badgeLabel, badgeActive) = when {
+            selected -> "Active" to true
+            selectable -> "Ready" to true
+            else -> provider.statusLabel to false
+        }
+        StatusBadge(badgeLabel, active = badgeActive)
     }
 }
 
@@ -604,6 +618,97 @@ private fun StatusBadge(label: String, active: Boolean) {
     val fg = if (active) scheme.primary else scheme.onSurfaceVariant
     Box(Modifier.clip(RoundedCornerShape(50)).background(bg).padding(horizontal = 10.dp, vertical = 4.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = fg)
+    }
+}
+
+/** Live cloud connection panel shown beneath the provider list once a cloud provider is selected. */
+@Composable
+private fun CloudSyncCard(vm: NotesViewModel, state: CloudSyncState) {
+    val scheme = MaterialTheme.colorScheme
+    val busy = state.status == CloudStatus.Connecting || state.status == CloudStatus.Syncing
+    val accent = when (state.status) {
+        CloudStatus.Error -> scheme.error
+        CloudStatus.Connected -> scheme.primary
+        else -> scheme.onSurfaceVariant
+    }
+    Spacer(Modifier.height(18.dp))
+    SettingsCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (busy) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = scheme.primary)
+            } else {
+                Icon(Icons.Filled.Cloud, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    cloudTitle(vm.storageProvider.displayName, state.status),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = scheme.onSurface,
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    state.message.ifBlank { defaultCloudMessage(state.status) },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state.status == CloudStatus.Error) scheme.error else scheme.onSurfaceVariant,
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Row {
+            val isError = state.status == CloudStatus.Error
+            SmallButton(
+                label = if (isError) "Try again" else "Sync now",
+                enabled = !busy,
+                primary = true,
+                onClick = { if (isError) vm.selectStorage(vm.storageProvider) else vm.syncCloudNow() },
+            )
+            Spacer(Modifier.width(10.dp))
+            SmallButton(
+                label = "Disconnect",
+                enabled = !busy,
+                primary = false,
+                onClick = { vm.disconnectCloud() },
+            )
+        }
+    }
+}
+
+private fun cloudTitle(providerName: String, status: CloudStatus): String = when (status) {
+    CloudStatus.Connecting -> "Connecting…"
+    CloudStatus.Syncing -> "Syncing…"
+    CloudStatus.Connected -> "$providerName connected"
+    CloudStatus.Error -> "$providerName needs attention"
+    CloudStatus.Idle -> providerName
+}
+
+private fun defaultCloudMessage(status: CloudStatus): String = when (status) {
+    CloudStatus.Connecting -> "Opening your browser to sign in…"
+    CloudStatus.Syncing -> "Syncing your notes…"
+    CloudStatus.Connected -> "Your notes are syncing to the cloud."
+    CloudStatus.Error -> "Something went wrong."
+    CloudStatus.Idle -> "Select a provider to connect."
+}
+
+/** Compact action pill styled like the Notes-folder "Change…" button; primary or ghost variant. */
+@Composable
+private fun SmallButton(label: String, enabled: Boolean, primary: Boolean, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val alpha = if (enabled) 1f else 0.4f
+    val bg = if (primary) scheme.primary.copy(alpha = 0.12f * alpha) else Color.Transparent
+    val borderColor = (if (primary) scheme.primary else scheme.outline)
+        .copy(alpha = (if (primary) 0.45f else 0.5f) * alpha)
+    val fg = (if (primary) scheme.primary else scheme.onSurfaceVariant).copy(alpha = alpha)
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(bg)
+            .border(1.dp, borderColor, RoundedCornerShape(9.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 15.dp, vertical = 9.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = fg)
     }
 }
 

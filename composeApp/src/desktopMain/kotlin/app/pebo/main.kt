@@ -13,6 +13,7 @@ import app.pebo.data.FileAppPreferences
 import app.pebo.data.LocalNoteStore
 import app.pebo.data.PREF_NOTES_DIR
 import app.pebo.data.seedWelcomeNoteIfNeeded
+import app.pebo.sync.DesktopCloudSyncController
 import app.pebo.ui.NotesViewModel
 import app.pebo.ui.peboLogo
 import com.sun.jna.Native
@@ -42,12 +43,14 @@ fun main() = application {
     val store = LocalNoteStore(fs, notesBaseDir)
     runBlocking { seedWelcomeNoteIfNeeded(store, fs, notesBaseDir) }
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val cloudSync = DesktopCloudSyncController(fs = fs, appDir = appDir)
     val vm = NotesViewModel(
         store = store,
         scope = scope,
         prefs = prefs,
         initialNotesDir = notesBaseDir.toString(),
         storeFactory = { path -> LocalNoteStore(fs, path.toPath()) },
+        cloudSync = cloudSync,
     )
 
     val windowState = rememberWindowState(
