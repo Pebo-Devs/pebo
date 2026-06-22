@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.pebo.PlatformBackHandler
+import app.pebo.platform.folderPickerSupported
 import app.pebo.platform.pickFolder
 import app.pebo.ui.theme.PeboPalette
 import app.pebo.ui.theme.Palettes
@@ -521,21 +522,23 @@ private fun StoragePanel(vm: NotesViewModel, dataDir: String) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(Modifier.width(12.dp))
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(scheme.primary.copy(alpha = 0.12f))
-                    .border(1.dp, scheme.primary.copy(alpha = 0.45f), RoundedCornerShape(9.dp))
-                    .clickable {
-                        scope.launch {
-                            val picked = pickFolder("Choose your Pebo notes folder", vm.notesDir.ifBlank { dataDir })
-                            if (!picked.isNullOrBlank()) vm.changeNotesDir(picked)
+            if (folderPickerSupported()) {
+                Spacer(Modifier.width(12.dp))
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(scheme.primary.copy(alpha = 0.12f))
+                        .border(1.dp, scheme.primary.copy(alpha = 0.45f), RoundedCornerShape(9.dp))
+                        .clickable {
+                            scope.launch {
+                                val picked = pickFolder("Choose your Pebo notes folder", vm.notesDir.ifBlank { dataDir })
+                                if (!picked.isNullOrBlank()) vm.changeNotesDir(picked)
+                            }
                         }
-                    }
-                    .padding(horizontal = 15.dp, vertical = 9.dp),
-            ) {
-                Text("Change…", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = scheme.primary)
+                        .padding(horizontal = 15.dp, vertical = 9.dp),
+                ) {
+                    Text("Change…", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = scheme.primary)
+                }
             }
         }
         Spacer(Modifier.height(11.dp))

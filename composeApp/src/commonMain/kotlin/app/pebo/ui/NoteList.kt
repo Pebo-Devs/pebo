@@ -6,7 +6,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -29,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
@@ -75,6 +77,7 @@ fun NoteList(
     vm: NotesViewModel,
     modifier: Modifier = Modifier,
     onMenu: (() -> Unit)? = null,
+    onOpenCommandPalette: (() -> Unit)? = null,
 ) {
     val notes = vm.visibleNotes
     val rows = vm.visibleNoteRows
@@ -103,6 +106,11 @@ fun NoteList(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                if (onOpenCommandPalette != null) {
+                    IconButton(onClick = onOpenCommandPalette) {
+                        Icon(Icons.Filled.Bolt, contentDescription = "Command palette")
+                    }
                 }
                 Surface(
                     onClick = { vm.createNote() },
@@ -214,6 +222,7 @@ private fun noteCountLabel(count: Int, trash: Boolean): String =
         else -> "$count notes"
     }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NoteRow(
     row: NoteTreeRow,
@@ -244,7 +253,15 @@ private fun NoteRow(
             .fillMaxWidth()
             .padding(vertical = 2.dp)
             .hoverable(interaction)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .combinedClickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick,
+                onLongClick = {
+                    menuOffset = Offset.Zero
+                    menuOpen = true
+                },
+            )
             .pointerInput(note.id) {
                 awaitPointerEventScope {
                     while (true) {

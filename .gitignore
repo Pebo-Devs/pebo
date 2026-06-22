@@ -24,3 +24,10 @@ local.properties
 # Compose / KMP native build leftovers
 **/kotlin-js-store/
 xcuserdata/
+
+# Pebo Apple parity loop — transcripts & run log (keep the dir, ignore its contents)
+apps/parity/logs/*
+!apps/parity/logs/.gitkeep
+
+# iOS Xcode project is generated from iosApp/project.yml via `xcodegen generate`
+iosApp/iosApp.xcodeproj/
