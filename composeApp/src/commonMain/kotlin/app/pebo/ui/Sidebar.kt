@@ -110,7 +110,7 @@ fun Sidebar(vm: NotesViewModel, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    "Personal Edit Board Online",
+                    "Personal Editable Brain Organizer",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
