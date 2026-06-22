@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop-test:
+    name: Desktop tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+
+      # The shared :composeApp module declares an Android target, so the Android
+      # SDK is required even to configure desktop tasks. GitHub-hosted runners
+      # ship a complete Android SDK (ANDROID_HOME pre-set, licenses accepted).
+      - name: Run desktop unit tests
+        shell: bash
+        run: ./gradlew :composeApp:desktopTest --stacktrace
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-test-results-${{ matrix.os }}
+          path: composeApp/build/test-results/desktopTest/**/*.xml
+          if-no-files-found: ignore
+
+  android-build:
+    name: Android APK (debug)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Assemble debug APK
+        run: ./gradlew :composeApp:assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pebo-android-debug
+          path: composeApp/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
