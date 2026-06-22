@@ -95,7 +95,7 @@ Choose where your notes live in **Settings → Storage**:
 | **On this device** | ✅ Active | Notes saved as `.md` files in a local folder you pick. |
 | **Any folder you choose** | ✅ Active | Already have a folder full of `.md`? Pebo **adopts the existing files** and edits them in place. |
 | **OneDrive (Microsoft)** | 🔧 Built — needs a client ID | OAuth PKCE + secure token storage + two‑way sync engine are implemented; set `PEBO_ONEDRIVE_CLIENT_ID` to enable. |
-| **Google Drive** | 🔧 Built — needs a client ID | Same sync engine; set `PEBO_GOOGLE_CLIENT_ID` to enable. |
+| **Google Drive** | 🔧 Built — needs a client ID + secret | Same sync engine; set `PEBO_GOOGLE_CLIENT_ID` and `PEBO_GOOGLE_CLIENT_SECRET` to enable. |
 | **iCloud Drive** | 🍎 Apple platforms | Reserved for iOS/macOS (requires Apple entitlements). |
 
 > **Already have Markdown?** Point Pebo at a folder that already contains `.md` files and they show up
@@ -201,8 +201,9 @@ via environment variable before launching:
 # OneDrive
 PEBO_ONEDRIVE_CLIENT_ID=<your-app-client-id>
 
-# Google Drive
+# Google Drive (Desktop OAuth client — needs both id and secret)
 PEBO_GOOGLE_CLIENT_ID=<your-app-client-id>
+PEBO_GOOGLE_CLIENT_SECRET=<your-app-client-secret>
 ```
 
 ---

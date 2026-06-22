@@ -35,6 +35,9 @@ data class OAuthClientConfig(
     val provider: OAuthProviderConfig,
     val clientId: String,
     val redirectUri: String,
+    // Google's installed-app token endpoint requires a client secret even with PKCE; for public
+    // clients like OneDrive this stays null and no secret is ever sent.
+    val clientSecret: String? = null,
 ) {
     val configured: Boolean get() = clientId.isNotBlank()
 }

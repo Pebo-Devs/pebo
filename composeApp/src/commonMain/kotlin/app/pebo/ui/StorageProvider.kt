@@ -21,7 +21,7 @@ enum class StorageProvider(
     ),
     GoogleDrive(
         "Google Drive",
-        "OAuth PKCE + secure token storage are ready; set PEBO_GOOGLE_CLIENT_ID.",
+        "OAuth PKCE + secure token storage are ready; set PEBO_GOOGLE_CLIENT_ID and PEBO_GOOGLE_CLIENT_SECRET.",
         "Needs setup",
         false,
     ),

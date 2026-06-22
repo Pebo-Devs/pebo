@@ -60,7 +60,7 @@ class DesktopCloudSyncController(
         return try {
             if (tokenStore.load(providerId) == null) {
                 // Opens the system browser and suspends until the loopback redirect returns the code.
-                signIn.signIn(providerConfig(provider), clientId)
+                signIn.signIn(providerConfig(provider), clientId, DesktopOAuthClientIds.clientSecretFor(providerId))
             }
             sync(provider, local, notesDir)
         } catch (t: Throwable) {
@@ -72,7 +72,12 @@ class DesktopCloudSyncController(
         val providerId = oauthId(provider) ?: return unsupported(provider)
         val clientId = DesktopOAuthClientIds.clientIdFor(providerId)
             ?: return needsClientId(provider)
-        val clientConfig = OAuthClientConfig(providerConfig(provider), clientId, redirectUri = "")
+        val clientConfig = OAuthClientConfig(
+            providerConfig(provider),
+            clientId,
+            redirectUri = "",
+            clientSecret = DesktopOAuthClientIds.clientSecretFor(providerId),
+        )
         val remote = remoteFor(provider) { accessToken(clientConfig) }
         val metadata = FileSyncMetadataStore(fs, metadataPath(notesDir, provider))
         val engine = SyncEngine(local, remote, metadata, deviceName)
