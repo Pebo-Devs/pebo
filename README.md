@@ -4,7 +4,7 @@
 
 # Pebo
 
-### Personal Edit Board Online
+### Personal Editable Brain Organizer
 
 **A markdown‑first, local‑first notes app for people who love plain text.**
 
@@ -326,7 +326,7 @@ see [fsl.software](https://fsl.software).
 
 <div align="center">
 
-**Pebo — Personal Edit Board Online**
+**Pebo — Personal Editable Brain Organizer**
 Made with Kotlin & Compose Multiplatform.
 
 </div>
