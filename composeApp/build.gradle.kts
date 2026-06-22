@@ -106,7 +106,7 @@ compose.desktop {
     application {
         mainClass = "app.pebo.MainKt"
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "Pebo"
             packageVersion = "1.0.0"
             windows {
