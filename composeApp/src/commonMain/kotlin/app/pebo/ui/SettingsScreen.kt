@@ -522,7 +522,7 @@ private fun AboutPanel() {
             Spacer(Modifier.width(14.dp))
             Column {
                 Text("Pebo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = scheme.onSurface)
-                Text("Personal Edit Board Online", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = scheme.primary)
+                Text("Personal Editable Brain Organizer", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = scheme.primary)
                 Text("Version 0.2-dev", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
             }
         }
