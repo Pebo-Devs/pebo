@@ -34,10 +34,12 @@ import kotlin.test.assertTrue
  */
 class DesktopCloudSyncControllerTest {
     private val clientIdProperty = "pebo.onedrive.clientId"
+    private val googleClientIdProperty = "pebo.google.clientId"
 
     @AfterTest
     fun clearClientId() {
         System.clearProperty(clientIdProperty)
+        System.clearProperty(googleClientIdProperty)
     }
 
     @Test
@@ -111,6 +113,48 @@ class DesktopCloudSyncControllerTest {
         assertNull(controller.connectedProvider())
     }
 
+    @Test
+    fun configuredProvidersReflectsGoogleClientIdProperty() {
+        val controller = controller()
+
+        System.clearProperty(googleClientIdProperty)
+        assertTrue(StorageProvider.GoogleDrive !in controller.configuredProviders())
+
+        System.setProperty(googleClientIdProperty, "test-google-client")
+        assertTrue(StorageProvider.GoogleDrive in controller.configuredProviders())
+    }
+
+    @Test
+    fun cleanGoogleDriveSyncResolvesFolderAndReportsConnected() = runBlocking {
+        System.setProperty(googleClientIdProperty, "test-google-client")
+        val store = FakeSecureTokenStore().apply { save(googleToken()) }
+        val http = mockClient { url ->
+            when {
+                url.contains("vnd.google-apps.folder") -> """{"files":[{"id":"folder-1","name":"Pebo Notes"}]}"""
+                url.contains("/drive/v3/files?") -> """{"files":[]}"""
+                else -> error("Unexpected URL $url")
+            }
+        }
+        val controller = controller(tokenStore = store, http = http)
+
+        val state = controller.sync(StorageProvider.GoogleDrive, emptyStore(), notesDir = "/pebo")
+
+        assertEquals(CloudStatus.Connected, state.status)
+        assertEquals(StorageProvider.GoogleDrive, state.provider)
+        assertTrue(state.message.contains("0 up, 0 down"), "was: ${state.message}")
+    }
+
+    @Test
+    fun googleDriveSyncWithoutClientIdAsksUserToSetEnvVar() = runBlocking {
+        System.clearProperty(googleClientIdProperty)
+        val controller = controller(tokenStore = FakeSecureTokenStore())
+
+        val state = controller.sync(StorageProvider.GoogleDrive, emptyStore(), notesDir = "/pebo")
+
+        assertEquals(CloudStatus.Error, state.status)
+        assertTrue(state.message.contains("PEBO_GOOGLE_CLIENT_ID"))
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private fun controller(
@@ -132,6 +176,15 @@ class DesktopCloudSyncControllerTest {
         expiresAtEpochMillis = System.currentTimeMillis() + 3_600_000,
         tokenType = "Bearer",
         scope = "Files.ReadWrite.AppFolder offline_access",
+    )
+
+    private fun googleToken(): StoredOAuthTokens = StoredOAuthTokens(
+        provider = OAuthProviderId.GoogleDrive,
+        accessToken = "access-token",
+        refreshToken = "refresh-token",
+        expiresAtEpochMillis = System.currentTimeMillis() + 3_600_000,
+        tokenType = "Bearer",
+        scope = "https://www.googleapis.com/auth/drive.file",
     )
 
     private fun emptyStore(): NoteStore = object : NoteStore {

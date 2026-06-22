@@ -11,6 +11,8 @@ import app.pebo.auth.OAuthTokenClient
 import app.pebo.auth.SecureTokenStore
 import app.pebo.auth.configurePeboHttpClient
 import app.pebo.data.NoteStore
+import app.pebo.sync.googledrive.GoogleDriveFolders
+import app.pebo.sync.googledrive.GoogleDriveNoteRemote
 import app.pebo.sync.onedrive.OneDriveNoteRemote
 import app.pebo.ui.StorageProvider
 import io.ktor.client.HttpClient
@@ -24,8 +26,9 @@ import okio.Path.Companion.toPath
  * Authorization-Code + PKCE [DesktopOAuthSignIn], the provider remote, and the [SyncEngine] — into
  * the select → sign-in → sync flow the Settings screen drives.
  *
- * OneDrive is wired end-to-end (its Graph app-folder needs no bootstrap). Google Drive can be added
- * by extending [oauthId]/[providerConfig]/[remoteFor] plus a find-or-create folder step.
+ * OneDrive (Graph app-folder, no bootstrap) and Google Drive (a find-or-create notes folder via
+ * [GoogleDriveFolders]) are both wired end-to-end through provider-neutral [oauthId]/[providerConfig]/
+ * [remoteFor] mappers, so a new provider is a localized addition.
  */
 class DesktopCloudSyncController(
     private val fs: FileSystem,
@@ -37,6 +40,8 @@ class DesktopCloudSyncController(
     private val tokenClient = OAuthTokenClient(http)
     private val signIn = DesktopOAuthSignIn(tokenClient, tokenStore)
     private val session = OAuthSessionManager(tokenClient, tokenStore) { System.currentTimeMillis() }
+
+    private var googleFolderId: String? = null
 
     override fun configuredProviders(): Set<StorageProvider> =
         StorageProvider.entries
@@ -94,21 +99,30 @@ class DesktopCloudSyncController(
         return current.accessToken
     }
 
-    private fun remoteFor(provider: StorageProvider, accessToken: suspend () -> String): CloudNoteRemote =
+    private suspend fun remoteFor(provider: StorageProvider, accessToken: suspend () -> String): CloudNoteRemote =
         when (provider) {
             StorageProvider.OneDrive -> OneDriveNoteRemote(http, accessToken)
+            StorageProvider.GoogleDrive ->
+                GoogleDriveNoteRemote(http, accessToken, googleNotesFolderId(accessToken))
             else -> error("No cloud remote for $provider")
         }
+
+    /** Find-or-create the Drive notes folder once per controller, then reuse its id for later syncs. */
+    private suspend fun googleNotesFolderId(accessToken: suspend () -> String): String =
+        googleFolderId ?: GoogleDriveFolders.findOrCreateNotesFolder(http, accessToken)
+            .also { googleFolderId = it }
 
     private fun providerConfig(provider: StorageProvider): OAuthProviderConfig =
         when (provider) {
             StorageProvider.OneDrive -> OAuthProviderConfig.OneDrive
+            StorageProvider.GoogleDrive -> OAuthProviderConfig.GoogleDrive
             else -> error("No OAuth config for $provider")
         }
 
     private fun oauthId(provider: StorageProvider): OAuthProviderId? =
         when (provider) {
             StorageProvider.OneDrive -> OAuthProviderId.OneDrive
+            StorageProvider.GoogleDrive -> OAuthProviderId.GoogleDrive
             else -> null
         }
 
