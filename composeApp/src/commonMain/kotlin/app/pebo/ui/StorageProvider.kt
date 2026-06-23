@@ -1,6 +1,6 @@
 package app.pebo.ui
 
-/** Storage backends offered in Settings. Cloud providers need public OAuth client ids before use. */
+/** Storage backends offered in Settings. Cloud providers ship with built-in public OAuth client ids. */
 enum class StorageProvider(
     val displayName: String,
     val description: String,
@@ -15,13 +15,13 @@ enum class StorageProvider(
     ),
     OneDrive(
         "OneDrive (Microsoft)",
-        "OAuth PKCE + secure token storage are ready; set PEBO_ONEDRIVE_CLIENT_ID.",
+        "Sign in with your Microsoft account to sync your notes to OneDrive.",
         "Needs setup",
         false,
     ),
     GoogleDrive(
         "Google Drive",
-        "OAuth PKCE + secure token storage are ready; set PEBO_GOOGLE_CLIENT_ID and PEBO_GOOGLE_CLIENT_SECRET.",
+        "Sign in with your Google account to sync your notes to Google Drive.",
         "Needs setup",
         false,
     ),

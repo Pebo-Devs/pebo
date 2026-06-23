@@ -45,7 +45,7 @@ class DesktopCloudSyncController(
 
     override fun configuredProviders(): Set<StorageProvider> =
         StorageProvider.entries
-            .filter { provider -> oauthId(provider)?.let { DesktopOAuthClientIds.clientIdFor(it) } != null }
+            .filter { provider -> oauthId(provider)?.let { DesktopOAuthClientIds.isConfigured(it) } == true }
             .toSet()
 
     override suspend fun connectedProvider(): StorageProvider? =
