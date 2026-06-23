@@ -35,11 +35,13 @@ import kotlin.test.assertTrue
 class DesktopCloudSyncControllerTest {
     private val clientIdProperty = "pebo.onedrive.clientId"
     private val googleClientIdProperty = "pebo.google.clientId"
+    private val googleClientSecretProperty = "pebo.google.clientSecret"
 
     @AfterTest
     fun clearClientId() {
         System.clearProperty(clientIdProperty)
         System.clearProperty(googleClientIdProperty)
+        System.clearProperty(googleClientSecretProperty)
     }
 
     @Test
@@ -118,9 +120,14 @@ class DesktopCloudSyncControllerTest {
         val controller = controller()
 
         System.clearProperty(googleClientIdProperty)
+        System.clearProperty(googleClientSecretProperty)
         assertTrue(StorageProvider.GoogleDrive !in controller.configuredProviders())
 
+        // A Google desktop client needs BOTH id and secret — id alone must not advertise as configured.
         System.setProperty(googleClientIdProperty, "test-google-client")
+        assertTrue(StorageProvider.GoogleDrive !in controller.configuredProviders())
+
+        System.setProperty(googleClientSecretProperty, "test-google-secret")
         assertTrue(StorageProvider.GoogleDrive in controller.configuredProviders())
     }
 

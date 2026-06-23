@@ -15,6 +15,12 @@ name: Release
 # So: to ship a new release, bump `appVersion` in composeApp/build.gradle.kts in
 # your PR. When it merges to main, the matching `vX.Y.Z` release is created with
 # the installers attached, which is exactly what the in-app updater looks for.
+#
+# Google Drive sync: the public client ids ship baked into the app, but Google's
+# desktop token exchange also needs a (non-confidential) client secret. Add it as a
+# repository Actions secret named `PEBO_GOOGLE_CLIENT_SECRET` so release builds bake
+# it in. If the secret is absent the build still succeeds; Google Drive just shows
+# as "Needs setup" until a secret is provided. OneDrive needs no secret.
 on:
   push:
     branches: [ main ]
@@ -121,6 +127,8 @@ jobs:
 
       - name: Package MSI and EXE
         shell: bash
+        env:
+          PEBO_GOOGLE_CLIENT_SECRET: ${{ secrets.PEBO_GOOGLE_CLIENT_SECRET }}
         run: ./gradlew :composeApp:packageMsi :composeApp:packageExe -PappVersion=${{ needs.prepare.outputs.version }} --stacktrace
 
       - name: Collect artifacts
@@ -166,6 +174,8 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Package DMG
+        env:
+          PEBO_GOOGLE_CLIENT_SECRET: ${{ secrets.PEBO_GOOGLE_CLIENT_SECRET }}
         run: ./gradlew :composeApp:packageDmg -PappVersion=${{ needs.prepare.outputs.version }} --stacktrace
 
       - name: Collect artifacts
@@ -209,6 +219,8 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Package DEB
+        env:
+          PEBO_GOOGLE_CLIENT_SECRET: ${{ secrets.PEBO_GOOGLE_CLIENT_SECRET }}
         run: ./gradlew :composeApp:packageDeb -PappVersion=${{ needs.prepare.outputs.version }} --stacktrace
 
       - name: Collect artifacts
@@ -252,6 +264,8 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Assemble debug APK
+        env:
+          PEBO_GOOGLE_CLIENT_SECRET: ${{ secrets.PEBO_GOOGLE_CLIENT_SECRET }}
         run: ./gradlew :composeApp:assembleDebug -PappVersion=${{ needs.prepare.outputs.version }} --stacktrace
 
       - name: Collect artifacts

@@ -104,8 +104,8 @@ Choose where your notes live in **Settings → Storage**:
 | --- | --- | --- |
 | **On this device** | ✅ Active | Notes saved as `.md` files in a local folder you pick. |
 | **Any folder you choose** | ✅ Active | Already have a folder full of `.md`? Pebo scans it **recursively** (every nested subfolder) and **adopts the existing files**, editing them in place. |
-| **OneDrive (Microsoft)** | 🔧 Built — needs a client ID | OAuth PKCE + secure token storage + two‑way sync engine are implemented; set `PEBO_ONEDRIVE_CLIENT_ID` to enable. |
-| **Google Drive** | 🔧 Built — needs a client ID + secret | Same sync engine; set `PEBO_GOOGLE_CLIENT_ID` and `PEBO_GOOGLE_CLIENT_SECRET` to enable. |
+| **OneDrive (Microsoft)** | ✅ Built in | The app ships with Pebo's public OneDrive client ID, so you just **sign in with your Microsoft account** — OAuth PKCE, secure token storage, and two‑way sync are all wired. |
+| **Google Drive** | ✅ Built in | Ships with Pebo's public Google client ID; **sign in with your Google account**. Google's desktop flow also needs a (non‑confidential) client secret that official release builds bake in. |
 | **iCloud Drive** | 🍎 Apple platforms | Reserved for iOS/macOS (requires Apple entitlements). |
 
 > **Already have Markdown?** Point Pebo at a folder that already contains `.md` files and they show up
@@ -241,10 +241,25 @@ xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp \
 
 See [`iosApp/README.md`](iosApp/README.md) for details on the SwiftUI ↔ Kotlin bridge.
 
-### Enable cloud sync (optional)
+### Cloud sync setup
 
-Cloud backends use OAuth with PKCE and never store a client secret. Provide a public OAuth client ID
-via environment variable before launching:
+**You don't need to configure anything** — official Pebo builds ship with Pebo's public OneDrive and
+Google Drive client IDs baked in, so cloud sync works out of the box. Just pick OneDrive or Google
+Drive in **Settings → Storage** and sign in with your account. Client IDs are public identifiers (not
+secrets) and are safe to embed in a native app that uses OAuth with PKCE.
+
+**Google Drive note:** Google's *desktop* OAuth flow additionally requires a `client_secret` in the
+token exchange even with PKCE. Google explicitly documents that this desktop secret "is not treated as
+a secret," but Pebo still keeps it **out of source**: it is injected at release‑build time from a
+GitHub Actions secret. Until that secret is present in a build, Google Drive shows as **"Needs setup."**
+OneDrive is a true public client and needs no secret.
+
+**Building official releases (maintainers):** add a repository **Actions secret** named
+`PEBO_GOOGLE_CLIENT_SECRET` (the `GOCSPX‑…` value from the Google Cloud Console desktop client). The
+release workflow bakes it into the installers. It is never committed to the repo.
+
+**Overriding the built‑in IDs (advanced / your own app registration):** pass your own client IDs (and
+the Google secret) at launch — they take precedence over the built‑in defaults:
 
 ```bash
 # OneDrive
@@ -254,6 +269,9 @@ PEBO_ONEDRIVE_CLIENT_ID=<your-app-client-id>
 PEBO_GOOGLE_CLIENT_ID=<your-app-client-id>
 PEBO_GOOGLE_CLIENT_SECRET=<your-app-client-secret>
 ```
+
+Or, for `./gradlew run`, use `-PpeboOnedriveClientId=…`, `-PpeboGoogleClientId=…`,
+`-PpeboGoogleClientSecret=…`.
 
 ---
 

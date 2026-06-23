@@ -14,6 +14,19 @@ object DesktopOAuthClientIds {
             OAuthProviderId.OneDrive -> null
         }?.takeIf { it.isNotBlank() }
 
+    /**
+     * A provider is usable only when every credential its token exchange requires is present: a client
+     * id for both, plus a client secret for Google's desktop client. This keeps Google from advertising
+     * itself as "Ready" in builds where the (build-time injected) secret is absent.
+     */
+    fun isConfigured(provider: OAuthProviderId): Boolean {
+        if (clientIdFor(provider) == null) return false
+        return when (provider) {
+            OAuthProviderId.GoogleDrive -> clientSecretFor(provider) != null
+            OAuthProviderId.OneDrive -> true
+        }
+    }
+
     private fun propertyOrEnv(property: String, env: String): String? =
         System.getProperty(property)?.takeIf { it.isNotBlank() }
             ?: System.getenv(env)?.takeIf { it.isNotBlank() }

@@ -33,6 +33,7 @@ import okio.Path
 import okio.Path.Companion.toPath
 
 fun main() = application {
+    seedBuiltInOAuthClientIds()
     val fs = FileSystem.SYSTEM
     val appDir = (System.getProperty("user.home") + "/Pebo").toPath()
     // Prefs live in the fixed app dir so the chosen notes folder persists independently of it.
@@ -71,6 +72,22 @@ fun main() = application {
         }
         App(vm, notesBaseDir.toString())
     }
+}
+
+private fun seedBuiltInOAuthClientIds() {
+    // Pebo ships with public OAuth client ids baked in (see PeboBuildConfig) so OneDrive/Google work
+    // out of the box. We surface them through the same system properties DesktopOAuthClientIds reads,
+    // and only when the user/CI hasn't already supplied an override via -D/env — so explicit overrides
+    // still win and unit tests (which set the properties directly) are unaffected.
+    fun seed(property: String, env: String, default: String) {
+        if (default.isBlank()) return
+        val alreadySet = System.getProperty(property)?.isNotBlank() == true ||
+            System.getenv(env)?.isNotBlank() == true
+        if (!alreadySet) System.setProperty(property, default)
+    }
+    seed("pebo.onedrive.clientId", "PEBO_ONEDRIVE_CLIENT_ID", PeboBuildConfig.ONEDRIVE_CLIENT_ID)
+    seed("pebo.google.clientId", "PEBO_GOOGLE_CLIENT_ID", PeboBuildConfig.GOOGLE_CLIENT_ID)
+    seed("pebo.google.clientSecret", "PEBO_GOOGLE_CLIENT_SECRET", PeboBuildConfig.GOOGLE_CLIENT_SECRET)
 }
 
 private fun applyWindowsTitleBar(window: AwtWindow) {
