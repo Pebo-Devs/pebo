@@ -4,16 +4,16 @@ name: Release
 # GitHub Release.
 #
 # It runs in three situations:
-#   1. A version tag is pushed (e.g. `v1.2.0`)  -> release that tag.
-#   2. A commit lands on `main` (e.g. a PR merge) -> if the app version in
-#      composeApp/build.gradle.kts has been bumped to a version that does NOT
-#      already have a release, cut that release automatically. If the release
-#      already exists, the build jobs are skipped (idempotent — re-merging a PR
-#      that didn't bump the version does nothing).
+#   1. A version tag is pushed (e.g. `v1.2.0`)      -> release exactly that tag.
+#   2. A commit lands on `main` (e.g. a PR merge)    -> ALWAYS cut a new release.
+#      The next version is derived automatically: by default it bumps the patch of
+#      the latest release (v1.1.0 -> v1.1.1 -> ...), so every merge ships. To force a
+#      specific minor/major, bump `appVersion` in composeApp/build.gradle.kts above
+#      the latest release; that exact version ships next, then auto-patch resumes.
 #   3. Manually via "Run workflow" (optionally typing a version to (re)build).
 #
-# So: to ship a new release, bump `appVersion` in composeApp/build.gradle.kts in
-# your PR. When it merges to main, the matching `vX.Y.Z` release is created with
+# So: just merge your PR to main and the next `vX.Y.Z` release is cut automatically
+# (bump `appVersion` first only to force a specific minor/major), with
 # the installers attached, which is exactly what the in-app updater looks for.
 on:
   push:
@@ -52,32 +52,56 @@ jobs:
         run: |
           set -uo pipefail
 
+          repo="${{ github.repository }}"
+
+          # Highest existing release version (leading 'v' stripped); 0.0.0 if none.
+          latest=$(gh release list -R "$repo" --limit 100 --json tagName --jq '.[].tagName' 2>/dev/null \
+                   | sed 's/^v//' | grep -E '^[0-9]+(\.[0-9]+){0,2}$' | sort -V | tail -1)
+          latest="${latest:-0.0.0}"
+
+          # The version baked into build.gradle.kts ( ... ?: "1.1.0" ) is a manual
+          # override: bump it above the latest release to force a specific minor/major.
+          file_raw=$(grep -E '^[[:space:]]*\?:[[:space:]]*"[0-9]+(\.[0-9]+)*"' composeApp/build.gradle.kts \
+                     | head -1 | grep -oE '[0-9]+(\.[0-9]+)*' | head -1)
+          file_version="${file_raw:-0.0.0}"
+
+          # Normalise a version to MAJOR.MINOR.PATCH so arithmetic/compares are safe.
+          norm() { local a b c; IFS=. read -r a b c <<< "$1"; echo "${a:-0}.${b:-0}.${c:-0}"; }
+          latest_n=$(norm "$latest")
+          file_n=$(norm "$file_version")
+
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            # Triggered by a pushed tag: release exactly that tag.
+            # Triggered by a pushed tag: release exactly that tag (idempotent).
             version="${{ github.ref_name }}"
           elif [[ -n "${DISPATCH_VERSION}" ]]; then
-            # Manual run with an explicit version typed in.
+            # Manual run with an explicit version typed in (idempotent).
             version="${DISPATCH_VERSION}"
           else
-            # Branch push (or manual run with no version): read the single source
-            # of truth from build.gradle.kts ( ... ?: "1.0.0" ).
-            raw=$(grep -E '^[[:space:]]*\?:[[:space:]]*"[0-9]+(\.[0-9]+)*"' composeApp/build.gradle.kts \
-                  | head -1 | grep -oE '[0-9]+(\.[0-9]+)*' | head -1)
-            if [[ -z "${raw:-}" ]]; then
-              echo "::error::Could not determine appVersion from composeApp/build.gradle.kts"
-              echo "version=" >> "$GITHUB_OUTPUT"
-              echo "should_release=false" >> "$GITHUB_OUTPUT"
-              exit 0
+            # Push to main (a PR merge) or manual run with no version: ALWAYS ship a
+            # release by auto-deriving the next version. Honour a manual appVersion bump
+            # when it is above the latest release; otherwise bump the latest patch so
+            # every merge produces a new version.
+            higher=$(printf '%s\n%s\n' "$file_n" "$latest_n" | sort -V | tail -1)
+            if [[ "$higher" == "$file_n" && "$file_n" != "$latest_n" ]]; then
+              candidate="$file_n"
+            else
+              IFS=. read -r a b c <<< "$latest_n"
+              candidate="${a}.${b}.$((c + 1))"
             fi
-            version="v${raw}"
+            # Never collide with an existing release (bump the patch until it is free).
+            IFS=. read -r a b c <<< "$candidate"
+            while gh release view "v${a}.${b}.${c}" -R "$repo" >/dev/null 2>&1; do
+              c=$((c + 1))
+            done
+            version="v${a}.${b}.${c}"
           fi
 
           # Normalise to a leading 'v'.
           [[ "$version" == v* ]] || version="v${version}"
-          echo "Resolved target version: $version"
+          echo "Resolved target version: $version (latest release: v${latest})"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-          if gh release view "$version" -R "${{ github.repository }}" >/dev/null 2>&1; then
+          if gh release view "$version" -R "$repo" >/dev/null 2>&1; then
             echo "Release $version already exists — skipping the build (nothing to release)."
             echo "should_release=false" >> "$GITHUB_OUTPUT"
           else
