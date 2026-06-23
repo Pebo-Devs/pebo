@@ -21,7 +21,7 @@ val appVersion: String = (findProperty("appVersion") as String?)
 // public identifier that appears in the consent URL — so they are safe to commit and ship baked into
 // the app, which is what lets OneDrive/Google "just work" without each user registering their own app.
 val oneDriveClientId = "45447072-b316-420c-914f-23918cca5802"
-val googleClientId = "940923472649-7rdqnmgptpkqq98cua1lvcd8rl7vd1or.apps.googleusercontent.com"
+val googleClientId = "940923472649-usq5q3ntvlqqmpdrqg5qlrh1lb0hpvmc.apps.googleusercontent.com"
 
 // Google's installed-app token exchange additionally needs a client secret. For desktop OAuth clients
 // Google does not treat it as confidential, but we still NEVER commit it to this public repo (GitHub
