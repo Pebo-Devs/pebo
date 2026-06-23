@@ -7,6 +7,7 @@ import okio.Path.Companion.toPath
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class LocalNoteStoreTest {
@@ -130,5 +131,94 @@ class LocalNoteStoreTest {
 
         assertEquals(1, active.count { it.id == "dup" })
         assertTrue(active.single { it.id == "dup" }.body.contains("notes subfolder"))
+    }
+
+    @Test
+    fun discoversMarkdownInNestedSubfoldersAtAnyDepth() = runBlocking {
+        val fs = FileSystem.SYSTEM
+        val dir = Files.createTempDirectory("pebo-test").toString().toPath()
+        fs.createDirectories(dir / "a" / "b" / "c")
+        fs.write(dir / "top.md") { writeUtf8("# Top") }
+        fs.write(dir / "a" / "mid.md") { writeUtf8("# Mid") }
+        fs.write(dir / "a" / "b" / "c" / "deep.md") { writeUtf8("# Deep\n#research") }
+
+        val snap = LocalNoteStore(fs, dir).load()
+
+        assertEquals(setOf("Top", "Mid", "Deep"), snap.active.map { it.title }.toSet())
+        assertEquals(3, snap.totalActive)
+        assertFalse(snap.truncated)
+        assertTrue(snap.active.single { it.title == "Deep" }.tags.contains("research"))
+    }
+
+    @Test
+    fun skipsHiddenAndVendorFolders() = runBlocking {
+        val fs = FileSystem.SYSTEM
+        val dir = Files.createTempDirectory("pebo-test").toString().toPath()
+        fs.createDirectories(dir / ".git")
+        fs.createDirectories(dir / ".obsidian")
+        fs.createDirectories(dir / "node_modules" / "pkg")
+        fs.createDirectories(dir / "real")
+        fs.write(dir / ".git" / "config.md") { writeUtf8("# Should be skipped") }
+        fs.write(dir / ".obsidian" / "workspace.md") { writeUtf8("# Should be skipped") }
+        fs.write(dir / "node_modules" / "pkg" / "readme.md") { writeUtf8("# Should be skipped") }
+        fs.write(dir / "real" / "keep.md") { writeUtf8("# Keep") }
+
+        val snap = LocalNoteStore(fs, dir).load()
+
+        assertEquals(listOf("Keep"), snap.active.map { it.title })
+        assertEquals(1, snap.totalActive)
+    }
+
+    @Test
+    fun editsDeeplyNestedAdoptedFileInPlace() = runBlocking {
+        val fs = FileSystem.SYSTEM
+        val dir = Files.createTempDirectory("pebo-test").toString().toPath()
+        fs.createDirectories(dir / "research" / "2024")
+        fs.write(dir / "research" / "2024" / "paper.md") { writeUtf8("# Paper\nDraft.") }
+
+        val store = LocalNoteStore(fs, dir)
+        val note = store.load().active.single()
+        store.save(note.copy(body = "# Paper\nFinal version."))
+
+        // The nested file is updated where it lives; nothing is copied into notes/.
+        assertTrue(fs.exists(dir / "research" / "2024" / "paper.md"))
+        assertTrue(!fs.exists(dir / "notes" / "paper.md"))
+        assertTrue(store.load().active.single().body.contains("Final version"))
+    }
+
+    @Test
+    fun capsToMostRecentWindowAndReportsTotals() = runBlocking {
+        val fs = FileSystem.SYSTEM
+        val dir = Files.createTempDirectory("pebo-test").toString().toPath()
+        for (i in 1..6) fs.write(dir / "n$i.md") { writeUtf8("# Note $i") }
+        // Make recency deterministic so we can assert which window survives: n6 newest … n1 oldest.
+        for (i in 1..6) {
+            val nio = java.nio.file.Paths.get((dir / "n$i.md").toString())
+            java.nio.file.Files.setLastModifiedTime(
+                nio,
+                java.nio.file.attribute.FileTime.fromMillis(1_000_000_000_000L + i * 60_000L),
+            )
+        }
+
+        val snap = LocalNoteStore(fs, dir, loadLimit = 3).load()
+
+        assertEquals(3, snap.active.size)
+        assertEquals(6, snap.totalActive)
+        assertTrue(snap.truncated)
+        // Only the three most-recently-modified notes are loaded.
+        assertEquals(setOf("Note 6", "Note 5", "Note 4"), snap.active.map { it.title }.toSet())
+    }
+
+    @Test
+    fun reportsTotalsWithoutTruncationWhenUnderLimit() = runBlocking {
+        val fs = FileSystem.SYSTEM
+        val dir = Files.createTempDirectory("pebo-test").toString().toPath()
+        for (i in 1..3) fs.write(dir / "n$i.md") { writeUtf8("# Note $i") }
+
+        val snap = LocalNoteStore(fs, dir, loadLimit = 10).load()
+
+        assertEquals(3, snap.active.size)
+        assertEquals(3, snap.totalActive)
+        assertFalse(snap.truncated)
     }
 }
