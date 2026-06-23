@@ -62,7 +62,11 @@ fun main() = application {
         size = DpSize(1280.dp, 820.dp),
     )
     Window(
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = {
+            // Persist any edit still inside the debounce window before the process exits.
+            runBlocking { vm.flushAndAwait() }
+            exitApplication()
+        },
         title = "Pebo",
         state = windowState,
         icon = rememberVectorPainter(peboLogo()),

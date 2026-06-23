@@ -41,16 +41,32 @@ class MarkdownVisualTransformationTest {
     }
 
     @Test
-    fun taskListItemsKeepTheirDash() {
+    fun uncheckedTaskKeepsBracketsCheckedTaskShowsGlyph() {
         val src = "- [ ] todo\n- [x] done"
-        // Checkbox source must survive verbatim so Preview can draw real checkboxes.
+        // Display only: unchecked stays "[ ]", a completed item's inner x renders as ✓. The swap is
+        // 1:1 so the on-disk source is never mutated (OffsetMapping.Identity).
+        val out = render(src)
+        assertEquals("- [ ] todo\n- [\u2713] done", out)
+        assertEquals(src.length, out.length, "offset mapping must stay 1:1")
+    }
+
+    @Test
+    fun capitalCheckedTaskAlsoShowsGlyph() {
+        assertEquals("- [\u2713] done", render("- [X] done"))
+    }
+
+    @Test
+    fun orderedMarkerDoesNotChangeText() {
+        val src = "1. first\n2. second"
         assertEquals(src, render(src))
+        assertEquals(src.length, render(src).length)
     }
 
     @Test
     fun horizontalRuleIsNotTreatedAsBullet() {
         assertEquals("---", render("---"))
         assertEquals("***", render("***"))
+        assertEquals("___", render("___"))
     }
 
     @Test

@@ -254,6 +254,7 @@ class NotesViewModel(
     val selectedNote: Note? get() = active.firstOrNull { it.id == selectedId } ?: trashed.firstOrNull { it.id == selectedId }
 
     fun select(id: String?) {
+        if (id != selectedId) flushPendingBody()
         selectedId = id
     }
 
@@ -268,6 +269,7 @@ class NotesViewModel(
     }
 
     fun createNote(parentId: String? = null) {
+        flushPendingBody()
         val note = Note.new(body = "", parentId = parentId)
         query = ""
         filter = NoteFilter.All
@@ -299,16 +301,78 @@ class NotesViewModel(
 
     private var saveJob: Job? = null
 
+    // The note id + latest body currently being typed, not yet folded into [active] or disk. Keeping
+    // the in-progress edit OUT of [active] is what stops every keystroke from re-allocating the whole
+    // list and recomposing the entire sidebar/tree — the dominant source of editor lag, and ruinous in
+    // very large workspaces. The editor owns the live text, so nothing on screen goes stale meanwhile.
+    private var pendingId: String? = null
+    private var pendingBody: String? = null
+
+    /**
+     * Record a keystroke. The edit is held as a lightweight draft and only committed to the in-memory
+     * list + disk after a short idle (debounced), so typing stays O(1) regardless of how many notes
+     * exist. Switching to a different note commits the previous draft first so nothing is ever dropped.
+     */
     fun updateBody(id: String, newBody: String) {
-        active = active.map { if (it.id == id) it.copy(body = newBody, modified = nowIso()) else it }
-        val note = active.firstOrNull { it.id == id } ?: return
-        saveJob?.cancel()
+        if (pendingId != null && pendingId != id) flushPendingBody()
+        pendingId = id
+        pendingBody = newBody
         saving = true
+        saveJob?.cancel()
         saveJob = scope.launch {
             delay(400)
-            store.save(note)
-            saving = false
+            commitPending()
         }
+    }
+
+    /** Fold the pending draft into [active] + disk, awaiting the write. Runs on the debounce. */
+    private suspend fun commitPending() {
+        val id = pendingId
+        val body = pendingBody
+        if (id == null || body == null) {
+            saving = false
+            return
+        }
+        pendingId = null
+        pendingBody = null
+        val idx = active.indexOfFirst { it.id == id }
+        if (idx >= 0 && active[idx].body != body) {
+            val updated = active[idx].copy(body = body, modified = nowIso())
+            // Replace just the one element (no re-sort) so list identity churns at most once per idle
+            // pause instead of once per keystroke, and the note keeps its place while you edit it.
+            active = active.toMutableList().also { it[idx] = updated }
+            store.save(updated)
+        }
+        saving = false
+    }
+
+    /**
+     * Synchronously fold any pending draft into [active] (the disk write is fire-and-forget). Call
+     * before switching away from, or removing, the current note so its latest text is committed at once
+     * and the sidebar reflects it without waiting for the debounce.
+     */
+    fun flushPendingBody() {
+        val id = pendingId ?: return
+        val body = pendingBody ?: return
+        pendingId = null
+        pendingBody = null
+        saveJob?.cancel()
+        val idx = active.indexOfFirst { it.id == id }
+        if (idx >= 0 && active[idx].body != body) {
+            val updated = active[idx].copy(body = body, modified = nowIso())
+            active = active.toMutableList().also { it[idx] = updated }
+            scope.launch { store.save(updated) }
+        }
+        saving = false
+    }
+
+    /**
+     * Commit any pending draft and await the disk write. For app-shutdown hooks so quitting right
+     * after a keystroke (inside the debounce window) still persists the final edit.
+     */
+    suspend fun flushAndAwait() {
+        saveJob?.cancel()
+        commitPending()
     }
 
     fun togglePin(id: String) {
@@ -320,6 +384,7 @@ class NotesViewModel(
     }
 
     fun trash(id: String) {
+        flushPendingBody()
         val note = active.firstOrNull { it.id == id } ?: return
         active = active.filterNot { it.id == id }
         trashed = listOf(note.copy(trashed = true)) + trashed
@@ -328,6 +393,7 @@ class NotesViewModel(
     }
 
     fun restore(id: String) {
+        flushPendingBody()
         val note = trashed.firstOrNull { it.id == id } ?: return
         trashed = trashed.filterNot { it.id == id }
         active = (listOf(note.copy(trashed = false)) + active).sortedWith(byModified)
@@ -336,6 +402,7 @@ class NotesViewModel(
     }
 
     fun purge(id: String) {
+        flushPendingBody()
         trashed = trashed.filterNot { it.id == id }
         if (selectedId == id) selectedId = null
         scope.launch { store.purge(id) }
@@ -348,6 +415,7 @@ class NotesViewModel(
     }
 
     fun openSettings() {
+        flushPendingBody()
         showSettings = true
     }
 
@@ -451,6 +519,7 @@ class NotesViewModel(
         val trimmed = path.trim()
         if (trimmed.isBlank() || trimmed == notesDir) return
         val factory = storeFactory ?: return
+        flushPendingBody()
         store = factory(trimmed)
         notesDir = trimmed
         selectedId = null

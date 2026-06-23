@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,6 +66,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -85,7 +87,9 @@ import app.pebo.export.pickSaveFile
 import app.pebo.ui.theme.LocalMonoFontFamily
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun Editor(
@@ -132,8 +136,21 @@ fun Editor(
         var writeNavTick by remember(note.id) { mutableIntStateOf(0) }
         var writeNavTarget by remember(note.id) { mutableStateOf<Int?>(null) }
         val previewListState = remember(note.id) { LazyListState() }
-        val outline = remember(value.text) { parseOutline(value.text) }
-        val wordCount = remember(value.text) { value.text.split(Regex("\\s+")).count { it.isNotBlank() } }
+        // Outline + word count are derived OFF the typing hot path. Re-parsing the whole document on
+        // every keystroke inside composition was a major source of editor lag (worst on large notes).
+        // A single snapshot-flow collector recomputes them a beat after typing pauses on a background
+        // dispatcher — collectLatest cancels superseded work, giving a clean debounce without the
+        // experimental Flow.debounce operator. Seeded once per note so both read correctly on open.
+        var outline by remember(note.id) { mutableStateOf(parseOutline(value.text)) }
+        var wordCount by remember(note.id) { mutableIntStateOf(countWords(value.text)) }
+        LaunchedEffect(note.id) {
+            snapshotFlow { value.text }.collectLatest { text ->
+                delay(200)
+                val parsed = withContext(Dispatchers.Default) { parseOutline(text) }
+                outline = parsed
+                wordCount = countWords(text)
+            }
+        }
 
         fun applyEdit(newValue: TextFieldValue) {
             value = newValue
@@ -501,22 +518,48 @@ fun Editor(
                             .padding(top = 30.dp, bottom = 64.dp)
                             .onGloballyPositioned { fieldOrigin = it.positionInWindow() }
                             .onPreviewKeyEvent { ev ->
-                                if (!acOpen || ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                // Tag autocomplete owns navigation keys while its popup is open.
+                                if (acOpen) {
+                                    when (ev.key) {
+                                        Key.DirectionDown -> {
+                                            acIndex = (acIndex + 1) % acSuggestions.size
+                                            return@onPreviewKeyEvent true
+                                        }
+                                        Key.DirectionUp -> {
+                                            acIndex = (acIndex - 1 + acSuggestions.size) % acSuggestions.size
+                                            return@onPreviewKeyEvent true
+                                        }
+                                        Key.Enter, Key.NumPadEnter, Key.Tab -> {
+                                            acceptCompletion(acSuggestions[acIndex.coerceIn(0, acSuggestions.lastIndex)])
+                                            return@onPreviewKeyEvent true
+                                        }
+                                        Key.Escape -> {
+                                            acDismissed = acQuery?.query
+                                            return@onPreviewKeyEvent true
+                                        }
+                                        else -> {}
+                                    }
+                                }
+                                if (note.trashed) return@onPreviewKeyEvent false
+                                // Smart editing: continue lists/quotes on Enter, indent with Tab.
                                 when (ev.key) {
-                                    Key.DirectionDown -> {
-                                        acIndex = (acIndex + 1) % acSuggestions.size
-                                        true
+                                    Key.Enter, Key.NumPadEnter -> {
+                                        val next = MarkdownEditing.smartEnter(value)
+                                        if (next != null) {
+                                            applyEdit(next)
+                                            true
+                                        } else {
+                                            false
+                                        }
                                     }
-                                    Key.DirectionUp -> {
-                                        acIndex = (acIndex - 1 + acSuggestions.size) % acSuggestions.size
-                                        true
-                                    }
-                                    Key.Enter, Key.NumPadEnter, Key.Tab -> {
-                                        acceptCompletion(acSuggestions[acIndex.coerceIn(0, acSuggestions.lastIndex)])
-                                        true
-                                    }
-                                    Key.Escape -> {
-                                        acDismissed = acQuery?.query
+                                    Key.Tab -> {
+                                        val next = if (ev.isShiftPressed) {
+                                            MarkdownEditing.outdentSelection(value)
+                                        } else {
+                                            MarkdownEditing.indentSelection(value)
+                                        }
+                                        applyEdit(next)
                                         true
                                     }
                                     else -> false
@@ -834,3 +877,9 @@ private fun WelcomeFeature(title: String, body: String, modifier: Modifier = Mod
         }
     }
 }
+
+private val wordSplitRegex = Regex("\\s+")
+
+/** Word count used by the editor status pill; computed off the UI thread, debounced. */
+internal fun countWords(text: String): Int =
+    text.split(wordSplitRegex).count { it.isNotBlank() }
