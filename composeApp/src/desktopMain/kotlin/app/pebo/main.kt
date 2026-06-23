@@ -16,6 +16,7 @@ import app.pebo.data.seedWelcomeNoteIfNeeded
 import app.pebo.sync.DesktopCloudSyncController
 import app.pebo.ui.NotesViewModel
 import app.pebo.ui.peboLogo
+import app.pebo.update.DesktopUpdateService
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.platform.win32.WinDef
@@ -44,6 +45,7 @@ fun main() = application {
     runBlocking { seedWelcomeNoteIfNeeded(store, fs, notesBaseDir) }
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val cloudSync = DesktopCloudSyncController(fs = fs, appDir = appDir)
+    val updater = DesktopUpdateService(exit = { exitApplication() })
     val vm = NotesViewModel(
         store = store,
         scope = scope,
@@ -51,6 +53,7 @@ fun main() = application {
         initialNotesDir = notesBaseDir.toString(),
         storeFactory = { path -> LocalNoteStore(fs, path.toPath()) },
         cloudSync = cloudSync,
+        updateService = updater,
     )
 
     val windowState = rememberWindowState(

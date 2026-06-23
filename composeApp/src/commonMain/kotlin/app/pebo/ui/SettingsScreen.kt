@@ -36,12 +36,15 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,6 +74,8 @@ import app.pebo.sync.CloudSyncState
 import app.pebo.ui.theme.PeboPalette
 import app.pebo.ui.theme.Palettes
 import app.pebo.ui.theme.ThemeMode
+import app.pebo.update.ReleaseInfo
+import app.pebo.update.UpdateState
 import kotlinx.coroutines.launch
 
 private enum class SettingsSection(val title: String, val icon: ImageVector) {
@@ -199,7 +204,7 @@ private fun SettingsPanel(section: SettingsSection, vm: NotesViewModel, dataDir:
         SettingsSection.Appearance -> AppearancePanel(vm)
         SettingsSection.Storage -> StoragePanel(vm, dataDir)
         SettingsSection.General -> GeneralPanel()
-        SettingsSection.About -> AboutPanel()
+        SettingsSection.About -> AboutPanel(vm)
     }
 }
 
@@ -766,7 +771,7 @@ private fun GeneralPanel() {
 }
 
 @Composable
-private fun AboutPanel() {
+private fun AboutPanel(vm: NotesViewModel) {
     val scheme = MaterialTheme.colorScheme
     PanelHeader("About", "Pebo — a fast, markdown-first notes app.")
     SettingsCard {
@@ -780,7 +785,7 @@ private fun AboutPanel() {
             Column {
                 Text("Pebo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = scheme.onSurface)
                 Text("Personal Editable Brain Organizer", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = scheme.primary)
-                Text("Version 0.2-dev", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+                Text("Version ${vm.appVersion}", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -813,6 +818,136 @@ private fun AboutPanel() {
             )
         }
     }
+    UpdatesCard(vm)
+}
+
+/** Settings → About "Software update" panel: check GitHub releases and install in-app (desktop). */
+@Composable
+private fun UpdatesCard(vm: NotesViewModel) {
+    val scheme = MaterialTheme.colorScheme
+    val state = vm.updateState
+    val uriHandler = LocalUriHandler.current
+    Spacer(Modifier.height(16.dp))
+    SettingsCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val busy = state is UpdateState.Checking || state is UpdateState.Downloading || state is UpdateState.Installing
+            if (busy) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = scheme.primary)
+            } else {
+                val tint = if (state is UpdateState.Available || state is UpdateState.Error) scheme.primary else scheme.onSurfaceVariant
+                Icon(
+                    if (state is UpdateState.Available) Icons.Filled.NewReleases else Icons.Filled.SystemUpdateAlt,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    updateTitle(state),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = scheme.onSurface,
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    updateMessage(state, vm.appVersion),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state is UpdateState.Error) scheme.error else scheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (state is UpdateState.Downloading) {
+            Spacer(Modifier.height(12.dp))
+            val progress = state.progress
+            if (progress != null) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = scheme.primary,
+                )
+            } else {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = scheme.primary)
+            }
+        }
+
+        if (vm.canSelfUpdate) {
+            Spacer(Modifier.height(12.dp))
+            UpdateActions(vm, state, uriHandler)
+        } else {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "In-app updates aren't available on this platform yet. Get the latest build from pebo.app.",
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(10.dp))
+            SmallButton(label = "Open pebo.app", enabled = true, primary = true) {
+                uriHandler.openUri("https://pebo.app")
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateActions(vm: NotesViewModel, state: UpdateState, uriHandler: androidx.compose.ui.platform.UriHandler) {
+    val busy = state is UpdateState.Checking || state is UpdateState.Downloading || state is UpdateState.Installing
+    Row {
+        when (state) {
+            is UpdateState.Available -> {
+                if (state.canInstall) {
+                    SmallButton(label = "Download & install", enabled = true, primary = true) {
+                        vm.downloadAndInstallUpdate(state.release)
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    SmallButton(label = "Release notes", enabled = true, primary = false) {
+                        vm.viewReleasePage(state.release)
+                    }
+                } else {
+                    SmallButton(label = "Download from web", enabled = true, primary = true) {
+                        vm.viewReleasePage(state.release)
+                    }
+                }
+            }
+            is UpdateState.Error -> {
+                SmallButton(label = "Try again", enabled = true, primary = true) { vm.checkForUpdates() }
+                Spacer(Modifier.width(10.dp))
+                SmallButton(label = "Dismiss", enabled = true, primary = false) { vm.dismissUpdateStatus() }
+            }
+            else -> {
+                SmallButton(label = "Check for updates", enabled = !busy, primary = true) { vm.checkForUpdates() }
+            }
+        }
+    }
+}
+
+private fun updateTitle(state: UpdateState): String = when (state) {
+    UpdateState.Idle -> "Software update"
+    UpdateState.Checking -> "Checking for updates…"
+    is UpdateState.UpToDate -> "You're up to date"
+    is UpdateState.Available -> "Update available"
+    is UpdateState.Downloading -> "Downloading update…"
+    is UpdateState.Installing -> "Installing…"
+    is UpdateState.Error -> "Update check failed"
+}
+
+private fun updateMessage(state: UpdateState, currentVersion: String): String = when (state) {
+    UpdateState.Idle -> "You're on version $currentVersion. Check whether a newer release is available."
+    UpdateState.Checking -> "Contacting GitHub for the latest release…"
+    is UpdateState.UpToDate -> "Version ${state.version} is the latest release."
+    is UpdateState.Available -> {
+        val name = state.release.name.ifBlank { "Pebo ${state.release.version}" }
+        if (state.canInstall) "$name is ready to download and install."
+        else "$name is available — no installer for this platform, open the release to download."
+    }
+    is UpdateState.Downloading -> {
+        val pct = state.progress?.let { " (${(it * 100).toInt()}%)" } ?: ""
+        "Fetching Pebo ${state.release.version}$pct. The app will restart to finish."
+    }
+    is UpdateState.Installing -> "Launching the installer for Pebo ${state.release.version}. Pebo will close now."
+    is UpdateState.Error -> state.message
 }
 
 // ── Small shared pieces ─────────────────────────────────────────────────────
