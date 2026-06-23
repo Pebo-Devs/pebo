@@ -15,7 +15,7 @@ val appVersion: String = (findProperty("appVersion") as String?)
     ?.removePrefix("v")
     ?.trim()
     ?.takeIf { Regex("""\d+(\.\d+){0,2}""").matches(it) }
-    ?: "1.0.0"
+    ?: "1.1.0"
 
 // Bake the version + GitHub coordinates into a generated commonMain source so the in-app updater
 // (Settings -> About) knows what it is running and which repo's releases to check.

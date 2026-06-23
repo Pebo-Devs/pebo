@@ -1,18 +1,94 @@
 name: Release
 
 # Builds native installers/packages for every platform and attaches them to a
-# GitHub Release. Trigger by pushing a version tag (e.g. `v1.0.0`) or manually.
+# GitHub Release.
+#
+# It runs in three situations:
+#   1. A version tag is pushed (e.g. `v1.2.0`)  -> release that tag.
+#   2. A commit lands on `main` (e.g. a PR merge) -> if the app version in
+#      composeApp/build.gradle.kts has been bumped to a version that does NOT
+#      already have a release, cut that release automatically. If the release
+#      already exists, the build jobs are skipped (idempotent — re-merging a PR
+#      that didn't bump the version does nothing).
+#   3. Manually via "Run workflow" (optionally typing a version to (re)build).
+#
+# So: to ship a new release, bump `appVersion` in composeApp/build.gradle.kts in
+# your PR. When it merges to main, the matching `vX.Y.Z` release is created with
+# the installers attached, which is exactly what the in-app updater looks for.
 on:
   push:
+    branches: [ main ]
     tags: [ 'v*' ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. v1.2.0). Leave blank to use the version in composeApp/build.gradle.kts."
+        required: false
+        default: ''
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  prepare:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      should_release: ${{ steps.resolve.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version and whether a release is needed
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_VERSION: ${{ github.event.inputs.version }}
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Triggered by a pushed tag: release exactly that tag.
+            version="${{ github.ref_name }}"
+          elif [[ -n "${DISPATCH_VERSION}" ]]; then
+            # Manual run with an explicit version typed in.
+            version="${DISPATCH_VERSION}"
+          else
+            # Branch push (or manual run with no version): read the single source
+            # of truth from build.gradle.kts ( ... ?: "1.0.0" ).
+            raw=$(grep -E '^[[:space:]]*\?:[[:space:]]*"[0-9]+(\.[0-9]+)*"' composeApp/build.gradle.kts \
+                  | head -1 | grep -oE '[0-9]+(\.[0-9]+)*' | head -1)
+            if [[ -z "${raw:-}" ]]; then
+              echo "::error::Could not determine appVersion from composeApp/build.gradle.kts"
+              echo "version=" >> "$GITHUB_OUTPUT"
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            version="v${raw}"
+          fi
+
+          # Normalise to a leading 'v'.
+          [[ "$version" == v* ]] || version="v${version}"
+          echo "Resolved target version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if gh release view "$version" -R "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release $version already exists — skipping the build (nothing to release)."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release $version does not exist yet — building installers and cutting it."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
   windows:
     name: Windows installers (.msi + .exe)
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +121,7 @@ jobs:
 
       - name: Package MSI and EXE
         shell: bash
-        run: ./gradlew :composeApp:packageMsi :composeApp:packageExe -PappVersion=${{ github.ref_name }} --stacktrace
+        run: ./gradlew :composeApp:packageMsi :composeApp:packageExe -PappVersion=${{ needs.prepare.outputs.version }} --stacktrace
 
       - name: Collect artifacts
         shell: bash
@@ -63,14 +139,16 @@ jobs:
           if-no-files-found: error
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.prepare.outputs.version }}
           files: dist/*
           fail_on_unmatched_files: true
 
   macos:
     name: macOS installer (.dmg)
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,7 +166,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Package DMG
-        run: ./gradlew :composeApp:packageDmg -PappVersion=${{ github.ref_name }} --stacktrace
+        run: ./gradlew :composeApp:packageDmg -PappVersion=${{ needs.prepare.outputs.version }} --stacktrace
 
       - name: Collect artifacts
         run: |
@@ -104,14 +182,16 @@ jobs:
           if-no-files-found: error
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.prepare.outputs.version }}
           files: dist/*
           fail_on_unmatched_files: true
 
   linux:
     name: Linux package (.deb)
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -129,7 +209,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Package DEB
-        run: ./gradlew :composeApp:packageDeb -PappVersion=${{ github.ref_name }} --stacktrace
+        run: ./gradlew :composeApp:packageDeb -PappVersion=${{ needs.prepare.outputs.version }} --stacktrace
 
       - name: Collect artifacts
         run: |
@@ -145,14 +225,16 @@ jobs:
           if-no-files-found: error
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.prepare.outputs.version }}
           files: dist/*
           fail_on_unmatched_files: true
 
   android:
     name: Android package (.apk)
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -170,13 +252,14 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Assemble debug APK
-        run: ./gradlew :composeApp:assembleDebug --stacktrace
+        run: ./gradlew :composeApp:assembleDebug -PappVersion=${{ needs.prepare.outputs.version }} --stacktrace
 
       - name: Collect artifacts
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           mkdir -p dist
-          name="${GITHUB_REF_NAME:-dev}"
-          cp composeApp/build/outputs/apk/debug/composeApp-debug.apk "dist/Pebo-${name}.apk"
+          cp composeApp/build/outputs/apk/debug/composeApp-debug.apk "dist/Pebo-${RELEASE_VERSION}.apk"
           ls -la dist
 
       - name: Upload build artifacts
@@ -187,8 +270,8 @@ jobs:
           if-no-files-found: error
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.prepare.outputs.version }}
           files: dist/*
           fail_on_unmatched_files: true
