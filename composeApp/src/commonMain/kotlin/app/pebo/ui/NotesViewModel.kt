@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import app.pebo.core.Note
 import app.pebo.core.NoteFilter
 import app.pebo.core.nowIso
+import app.pebo.PeboBuildConfig
 import app.pebo.data.AppPreferences
 import app.pebo.data.NoteStore
 import app.pebo.data.PREF_NOTES_DIR
@@ -14,6 +15,9 @@ import app.pebo.sync.CloudSyncController
 import app.pebo.sync.CloudSyncState
 import app.pebo.ui.theme.Palettes
 import app.pebo.ui.theme.ThemeMode
+import app.pebo.update.ReleaseInfo
+import app.pebo.update.UpdateService
+import app.pebo.update.UpdateState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -58,8 +62,15 @@ class NotesViewModel(
     initialNotesDir: String = "",
     private val storeFactory: ((String) -> NoteStore)? = null,
     private val cloudSync: CloudSyncController? = null,
+    private val updateService: UpdateService? = null,
 ) {
     private var store: NoteStore = store
+
+    /** The running app version (e.g. `1.0.0`), shown in Settings → About. */
+    val appVersion: String = updateService?.currentVersion ?: PeboBuildConfig.VERSION
+
+    /** True when this platform can install updates in-app (desktop); false → website-only hint. */
+    val canSelfUpdate: Boolean = updateService != null
 
     /** Cloud providers with a configured OAuth client id, so the UI can offer them at runtime. */
     private val cloudConfigured: Set<StorageProvider> = cloudSync?.configuredProviders() ?: emptySet()
@@ -90,6 +101,10 @@ class NotesViewModel(
 
     /** Live status of the active cloud connection (connecting / syncing / connected / error). */
     var cloudSyncState by mutableStateOf(CloudSyncState())
+        private set
+
+    /** Live status of the in-app updater (Settings → About). */
+    var updateState by mutableStateOf<UpdateState>(UpdateState.Idle)
         private set
     var themeMode by mutableStateOf(ThemeMode.System)
         private set
@@ -378,6 +393,41 @@ class NotesViewModel(
         cloudSyncState = CloudSyncState()
         if (controller == null || provider == StorageProvider.Local) return
         scope.launch { runCatching { controller.disconnect(provider) } }
+    }
+
+    /** Ask GitHub whether a newer release exists for this platform. No-op without an [updateService]. */
+    fun checkForUpdates() {
+        val service = updateService ?: return
+        if (updateState is UpdateState.Checking || updateState is UpdateState.Downloading) return
+        updateState = UpdateState.Checking
+        scope.launch {
+            updateState = runCatching { service.check() }
+                .getOrElse { UpdateState.Error(it.message ?: "Couldn't check for updates.") }
+        }
+    }
+
+    /** Download [release]'s installer and launch it (the app exits on success). */
+    fun downloadAndInstallUpdate(release: ReleaseInfo) {
+        val service = updateService ?: return
+        if (updateState is UpdateState.Downloading || updateState is UpdateState.Installing) return
+        updateState = UpdateState.Downloading(release, progress = null)
+        scope.launch {
+            updateState = runCatching {
+                service.downloadAndInstall(release) { progress ->
+                    updateState = UpdateState.Downloading(release, progress)
+                }
+            }.getOrElse { UpdateState.Error(it.message ?: "Update failed.") }
+        }
+    }
+
+    /** Open the release's web page so the user can download the installer manually. */
+    fun viewReleasePage(release: ReleaseInfo) {
+        updateService?.openReleasePage(release)
+    }
+
+    /** Clear a failed/finished update status back to idle. */
+    fun dismissUpdateStatus() {
+        updateState = UpdateState.Idle
     }
 
     /**

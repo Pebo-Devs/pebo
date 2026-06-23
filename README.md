@@ -86,6 +86,16 @@ scheme; switch the app between **Light / Dark / System** independently.
 Export any note to **HTML, PDF, DOCX, JPG, or PNG**. Relative image paths are resolved against your
 notes folder when rendering the raster formats.
 
+### 🔄 Stays up to date
+
+- **Built‑in updater.** Open **Settings → About** and hit **Check for updates** — Pebo asks the GitHub
+  Releases API whether a newer version is out and compares it against the version baked into your build.
+- **One‑click install on desktop.** When an update is available, Pebo downloads the right installer for
+  your OS (`.msi`/`.exe` on Windows, `.dmg` on macOS, `.deb` on Linux), launches it, and closes so the
+  installer can swap the files in place. The About panel shows live **Downloading → Installing** status.
+- **No surprises on mobile.** Android and iOS link out to [pebo.app](https://pebo.app) / the store
+  listing instead of self‑installing, so platform update rules are respected.
+
 ### 💾 Bring your own storage
 
 Choose where your notes live in **Settings → Storage**:
@@ -166,6 +176,39 @@ This produces a branded, self‑contained installer:
 > **Packaging on macOS with a Homebrew JDK?** `jpackage` rejects Homebrew's JDK by default. Either use
 > a vendor build such as Amazon Corretto 21, or pass
 > `-Pcompose.desktop.packaging.checkJdkVendor=false` to the `packageDmg` task.
+
+### Updating the app
+
+Pebo can update itself from **Settings → About → Check for updates**. It queries the GitHub Releases
+API for the latest tag and compares it against the version compiled into your build; if a newer release
+exists, the desktop app downloads the matching installer (`.msi`/`.exe`/`.dmg`/`.deb`), runs it, and
+exits so the files can be replaced. Mobile builds open [pebo.app](https://pebo.app) instead.
+
+The version the running app reports is whatever you pass to the build via `-PappVersion`:
+
+```bash
+# Stamp a version into the build (the release workflow passes the git tag here)
+./gradlew :composeApp:run -PappVersion=1.2.3
+```
+
+When unset it defaults to the value in `composeApp/build.gradle.kts`, so locally built and tagged‑release
+binaries both report a sensible version.
+
+### Cutting a release
+
+Releases are produced by the **Release** GitHub Actions workflow (`.github/workflows/release.yml`),
+which builds the installers for every platform and attaches them to a `vX.Y.Z` GitHub Release — the
+exact thing the in‑app updater looks for. It runs in three ways:
+
+1. **Merge to `main` (the usual way).** Bump `appVersion` in `composeApp/build.gradle.kts` in your PR.
+   When it merges, the workflow reads that version and, **if a release for it doesn't already exist**,
+   builds the installers and cuts `vX.Y.Z` automatically. Merging a PR that didn't bump the version is
+   a no‑op, so you never get duplicate releases.
+2. **Push a `v*` tag.** `git tag v1.2.0 && git push origin v1.2.0` releases that exact version.
+3. **Manually.** Run the workflow from the Actions tab (optionally typing a version to re‑build).
+
+So the one‑line recipe: **bump `appVersion`, merge to `main`, and the matching release appears** with
+Windows/macOS/Linux/Android artifacts attached.
 
 ### Run on iOS &amp; iPadOS
 
@@ -304,6 +347,7 @@ Pebo is built on a shared Kotlin Multiplatform core specifically so it can grow 
 - 🗂️ **Recursive vault import** — map a deep folder tree of `.md` into the note hierarchy.
 - 🔍 **OCR search** inside images and PDFs.
 - 🖼️ **Richer media** — inline image rendering with crop/resize and link previews.
+- 🔄 **In‑app auto‑update** — ✅ shipped on desktop (Settings → About); background update checks are next.
 
 ---
 

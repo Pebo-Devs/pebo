@@ -9,6 +9,38 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
+// Single source of truth for the app version. Override at build time with -PappVersion=1.2.3
+// (the release workflow passes the git tag); falls back to the baseline below for local dev.
+val appVersion: String = (findProperty("appVersion") as String?)
+    ?.removePrefix("v")
+    ?.trim()
+    ?.takeIf { Regex("""\d+(\.\d+){0,2}""").matches(it) }
+    ?: "1.1.0"
+
+// Bake the version + GitHub coordinates into a generated commonMain source so the in-app updater
+// (Settings -> About) knows what it is running and which repo's releases to check.
+val generatePeboBuildConfig by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/peboBuildConfig/commonMain/kotlin")
+    val versionValue = appVersion
+    inputs.property("version", versionValue)
+    outputs.dir(outputDir)
+    doLast {
+        val pkgDir = outputDir.get().asFile.resolve("app/pebo")
+        pkgDir.mkdirs()
+        pkgDir.resolve("PeboBuildConfig.kt").writeText(
+            """
+            package app.pebo
+
+            internal object PeboBuildConfig {
+                const val VERSION: String = "$versionValue"
+                const val GITHUB_OWNER: String = "Pebo-Devs"
+                const val GITHUB_REPO: String = "pebo"
+            }
+            """.trimIndent() + "\n"
+        )
+    }
+}
+
 kotlin {
     jvm("desktop")
 
@@ -81,7 +113,7 @@ android {
         minSdk = 30
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = appVersion
     }
 
     compileOptions {
@@ -101,12 +133,6 @@ android {
         }
     }
 }
-
-val appVersion: String = (findProperty("appVersion") as String?)
-    ?.removePrefix("v")
-    ?.trim()
-    ?.takeIf { Regex("""\d+(\.\d+){0,2}""").matches(it) }
-    ?: "1.0.0"
 
 compose.desktop {
     application {
@@ -156,5 +182,10 @@ tasks.withType<JavaExec>().configureEach {
             systemProperty(systemProp, it)
         }
     }
+}
+
+// Wire the generated PeboBuildConfig into commonMain so every target compiles it.
+kotlin.sourceSets.named("commonMain") {
+    kotlin.srcDir(generatePeboBuildConfig)
 }
 
