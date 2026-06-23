@@ -91,6 +91,16 @@ class NotesViewModel(
         private set
 
     /**
+     * Total number of `.md` files discovered in the workspace (may exceed [active]`.size` when the
+     * folder is huge and only a most-recent window was loaded) and whether that window was capped.
+     * Lets the note list honestly show "showing N of M".
+     */
+    var totalNoteCount by mutableStateOf(0)
+        private set
+    var notesTruncated by mutableStateOf(false)
+        private set
+
+    /**
      * Distraction-free writing mode: the sidebar + note list collapse away and the editor becomes a
      * centered, wide-margin canvas (a distraction-free "focus" mode). UI-only, never persisted.
      */
@@ -138,6 +148,8 @@ class NotesViewModel(
             val snap = store.load()
             active = snap.active
             trashed = snap.trashed
+            totalNoteCount = snap.totalActive
+            notesTruncated = snap.truncated
             if (selectedId != null && active.none { it.id == selectedId } && trashed.none { it.id == selectedId }) {
                 selectedId = null
             }

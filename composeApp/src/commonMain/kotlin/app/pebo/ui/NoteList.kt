@@ -102,7 +102,7 @@ fun NoteList(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        noteCountLabel(notes.size, isTrash),
+                        noteCountLabel(notes.size, isTrash, vm.notesTruncated, vm.totalNoteCount, vm.filter, vm.query),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -133,6 +133,10 @@ fun NoteList(
                 value = vm.query,
                 onValueChange = vm::updateQuery,
             )
+            if (vm.notesTruncated && !isTrash) {
+                Spacer(Modifier.height(12.dp))
+                LargeWorkspaceHint(loaded = vm.active.size, total = vm.totalNoteCount)
+            }
         }
 
         if (notes.isEmpty()) {
@@ -214,13 +218,73 @@ private fun filterTitle(filter: NoteFilter): String =
         is NoteFilter.Tag -> "#${filter.name}"
     }
 
-private fun noteCountLabel(count: Int, trash: Boolean): String =
-    when {
+private fun noteCountLabel(
+    count: Int,
+    trash: Boolean,
+    truncated: Boolean,
+    total: Int,
+    filter: NoteFilter,
+    query: String,
+): String {
+    // When the workspace was capped to a most-recent window, be honest about the full size — but only
+    // on the unfiltered "All notes" view where "of M" is meaningful.
+    if (truncated && !trash && filter == NoteFilter.All && query.isBlank() && total > count) {
+        return "$count of ${formatCount(total)} notes"
+    }
+    return when {
         count == 0 && trash -> "Nothing to restore"
         count == 0 -> "No notes yet"
         count == 1 -> "1 note"
         else -> "$count notes"
     }
+}
+
+/** Groups a large number with thin separators so "1234567" reads as "1,234,567". */
+private fun formatCount(n: Int): String {
+    val s = n.toString()
+    if (s.length <= 3) return s
+    val sb = StringBuilder()
+    val firstGroup = s.length % 3
+    if (firstGroup > 0) {
+        sb.append(s, 0, firstGroup)
+        if (s.length > firstGroup) sb.append(',')
+    }
+    var i = firstGroup
+    while (i < s.length) {
+        sb.append(s, i, i + 3)
+        if (i + 3 < s.length) sb.append(',')
+        i += 3
+    }
+    return sb.toString()
+}
+
+@Composable
+private fun LargeWorkspaceHint(loaded: Int, total: Int) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Filled.AccountTree,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "Large workspace — showing the ${formatCount(loaded)} most recent of " +
+                    "${formatCount(total)} notes. Open a subfolder or refine your search to find the rest.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

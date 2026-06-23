@@ -103,13 +103,19 @@ Choose where your notes live in **Settings → Storage**:
 | Backend | Status | Notes |
 | --- | --- | --- |
 | **On this device** | ✅ Active | Notes saved as `.md` files in a local folder you pick. |
-| **Any folder you choose** | ✅ Active | Already have a folder full of `.md`? Pebo **adopts the existing files** and edits them in place. |
+| **Any folder you choose** | ✅ Active | Already have a folder full of `.md`? Pebo scans it **recursively** (every nested subfolder) and **adopts the existing files**, editing them in place. |
 | **OneDrive (Microsoft)** | 🔧 Built — needs a client ID | OAuth PKCE + secure token storage + two‑way sync engine are implemented; set `PEBO_ONEDRIVE_CLIENT_ID` to enable. |
 | **Google Drive** | 🔧 Built — needs a client ID + secret | Same sync engine; set `PEBO_GOOGLE_CLIENT_ID` and `PEBO_GOOGLE_CLIENT_SECRET` to enable. |
 | **iCloud Drive** | 🍎 Apple platforms | Reserved for iOS/macOS (requires Apple entitlements). |
 
 > **Already have Markdown?** Point Pebo at a folder that already contains `.md` files and they show up
 > immediately — Pebo never moves or rewrites your files behind your back.
+> 
+> **Big vault?** Pebo walks **every nested subfolder at any depth** and is built to survive a folder
+> holding **millions** of `.md` files: it reads only lightweight file metadata while scanning, keeps
+> memory bounded by loading just the most‑recently‑modified window of notes (caches and hidden folders
+> like `.git`, `.obsidian`, `node_modules` and `.trash` are skipped), and tells you honestly when it's
+> *"showing N of M"* so nothing feels silently missing.
 
 ---
 
@@ -272,7 +278,8 @@ pinned: true
 ```
 
 - Pebo's own notes live in `<your-folder>/notes/`, with deleted notes in `<your-folder>/.trash/`.
-- Any `.md` you keep directly in the chosen folder is **adopted and edited in place**.
+- Any `.md` you keep **anywhere under the chosen folder** (at any nesting depth) is \*\*adopted and edited
+  in place\*\* — Pebo scans subfolders recursively and never relocates your files.
 - Writes are **atomic** (temp file + rename) so a note is never left half‑written.
 
 ---
@@ -344,7 +351,9 @@ Pebo is built on a shared Kotlin Multiplatform core specifically so it can grow 
   macOS ships as a packaged `.dmg`.
 - ☁️ **One‑click cloud sign‑in** once public OAuth client IDs are bundled for OneDrive and Google
   Drive.
-- 🗂️ **Recursive vault import** — map a deep folder tree of `.md` into the note hierarchy.
+- 🗂️ **Unbounded vault index** — recursive discovery of every nested `.md` ships today (with a
+  memory‑bounded most‑recent window); a persistent on‑disk index is next so even multi‑million‑note
+  vaults are fully searchable, and the folder tree can map onto the visual note hierarchy.
 - 🔍 **OCR search** inside images and PDFs.
 - 🖼️ **Richer media** — inline image rendering with crop/resize and link previews.
 - 🔄 **In‑app auto‑update** — ✅ shipped on desktop (Settings → About); background update checks are next.
